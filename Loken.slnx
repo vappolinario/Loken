@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Loken.Cli/Loken.Cli.csproj" />
+  <Project Path="Loken.Core.Tests/Loken.Core.Tests.csproj" />
+  <Project Path="Loken.Core/Loken.Core.csproj" />
+</Solution>
