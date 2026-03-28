@@ -3,11 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
-
 builder.Services.AddScoped<IShellExecutor>(sp => new ShellExecutor(workingDirectory: "."));
 builder.Services.AddScoped<IChatClient, LiteLlmChatClient>();
 builder.Services.AddTransient<Agent, Agent>();
-
 using IHost host = builder.Build();
 
 await RunConsoleLoop(host.Services);
@@ -28,8 +26,7 @@ async Task RunConsoleLoop(IServiceProvider services)
 
         try
         {
-            Console.Write("❯❯ ");
-            Console.WriteLine(await agent.Run(input));
+            Console.WriteLine($"❯❯ {await agent.Run(input)}");
         }
         catch (System.Exception ex)
         {
