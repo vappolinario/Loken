@@ -12,7 +12,6 @@ public class ShellExecutorTest
     public async Task Version_AgentMustReturnVersionNumber(string command)
     {
         var executor = new ShellExecutor();
-        var result = await executor.ExecuteAsync(command);
-        result.ExitCode.ShouldBe(1);
+        await Should.ThrowAsync<System.Security.SecurityException>(async () => await executor.ExecuteAsync(command));
     }
 }

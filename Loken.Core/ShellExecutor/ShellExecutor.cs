@@ -20,13 +20,8 @@ public class ShellExecutor : IShellExecutor
     public async Task<ShellResult> ExecuteAsync(string command)
     {
         if (DangerousPatterns.FirstOrDefault(p => command.Contains(p)) is string blocked)
-        {
-            return new ShellResult(
-                Stdout: "",
-                Stderr: $"Error: Dangerous command blocked (matched '{blocked}')",
-                ExitCode: 1
-            );
-        }
+          throw new System.Security.SecurityException(
+              $"Error: Dangerous command blocked (matched '{blocked}')");
 
         var startInfo = new ProcessStartInfo
         {
