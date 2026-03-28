@@ -10,9 +10,11 @@ public class LiteLlmChatClient : IChatClient
 
     public LiteLlmChatClient()
     {
+        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? string.Empty;
+
         _chatClient = new(
             model: "chat",
-            credential: new ApiKeyCredential(Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? ""),
+            credential: new ApiKeyCredential(apiKey),
             options: new OpenAIClientOptions()
             {
                 Endpoint = new Uri("http://192.168.68.117:4000")
