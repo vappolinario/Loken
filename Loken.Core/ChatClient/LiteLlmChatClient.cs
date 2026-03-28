@@ -1,4 +1,5 @@
 using System.ClientModel;
+using Microsoft.Extensions.Options;
 using OpenAI;
 using OpenAI.Chat;
 
@@ -8,7 +9,7 @@ public class LiteLlmChatClient : IChatClient
 {
     private ChatClient _chatClient;
 
-    public LiteLlmChatClient()
+    public LiteLlmChatClient(IOptions<AiOptions> options)
     {
         var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? string.Empty;
 
@@ -17,7 +18,7 @@ public class LiteLlmChatClient : IChatClient
             credential: new ApiKeyCredential(apiKey),
             options: new OpenAIClientOptions()
             {
-                Endpoint = new Uri("http://192.168.68.117:4000")
+                Endpoint = new Uri(options.Value.OpenAiUri)
             });
     }
 

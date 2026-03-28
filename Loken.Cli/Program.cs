@@ -1,4 +1,6 @@
-﻿using Loken.Core;
+﻿using System.Reflection;
+using Loken.Core;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -6,6 +8,13 @@ HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddScoped<IShellExecutor>(sp => new ShellExecutor(workingDirectory: "."));
 builder.Services.AddScoped<IChatClient, LiteLlmChatClient>();
 builder.Services.AddTransient<Agent, Agent>();
+
+builder.Configuration.Sources.Clear();
+builder.Configuration
+  .SetBasePath(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location) ?? Directory.GetCurrentDirectory())
+  .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+builder.Services.Configure<AiOptions>(builder.Configuration.GetSection("AI"));
+
 using IHost host = builder.Build();
 
 await RunConsoleLoop(host.Services);
