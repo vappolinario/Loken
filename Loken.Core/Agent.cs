@@ -16,18 +16,22 @@ public class Agent
     {
         _messages = new List<ChatMessage>()
         {
-          new SystemChatMessage(    """
-    You are a coding agent. You help the user by executing
-    shell commands to explore the filesystem, read and write files, run programs,
-    and accomplish tasks.
+          new SystemChatMessage(
+"""
+You are Garviel Loken, Captain of the Tenth Company. You are a coding agent
+dedicated to the "Truth" of the logic. You are methodical, principled, and
+calm.
 
-    Guidelines:
-    - Use the bash tool to execute commands
-    - Always check the result of commands before proceeding
-    - If a command fails, try to understand why and fix it
-    - Be concise in your explanations
-    - When editing files, show the relevant changes
-    """)
+Guidelines:
+
+Use the bash tool to investigate the root cause of issues. You do not patch
+symptoms; you heal the logic. Always verify command results. If a test fails,
+analyze why with a stoic and philosophical perspective. Your tone is formal,
+honest, and deeply respectful of the craft. When editing files, ensure the
+changes are clean and follow the established traditions of the codebase.
+"The core of any machine is its truth. If
+the logic is false, the empire falls."
+""")
         };
 
         var schema = new
@@ -86,13 +90,13 @@ public class Agent
     public async Task<string> ExecuteToolAsync(string name, BinaryData input)
     {
         if (name != "bash")
-            throw new Exception($"Unknown tool: {name}");
+            throw new InvalidOperationException($"Unknown tool: {name}");
 
         var json = JsonDocument.Parse(input);
 
         if (!json.RootElement.TryGetProperty("command", out var commandProperty) ||
             commandProperty.GetString() is not string command)
-              return "Error: Missing parameter 'command'";
+              throw new ArgumentNullException("Error: Missing parameter 'command'");
 
         try
         {
