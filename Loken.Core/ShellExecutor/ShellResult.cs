@@ -9,20 +9,13 @@ public readonly record struct ShellResult(string Stdout, string Stderr, int Exit
             var output = Stdout;
 
             if (!string.IsNullOrEmpty(Stderr))
-            {
                 output += $"\nSTDERR:\n{Stderr}";
-            }
 
             if (ExitCode != 0)
-            {
                 output += $"\n[exit code: {ExitCode}]";
-            }
 
-            // Limite de 50k caracteres usando Range do C#
             if (output.Length > 50_000)
-            {
                 output = output[..50_000];
-            }
 
             return string.IsNullOrWhiteSpace(output) ? "(no output)" : output;
         }
