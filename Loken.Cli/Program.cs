@@ -8,6 +8,8 @@ HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddScoped<IShellExecutor>(sp => new ShellExecutor(workingDirectory: "."));
 builder.Services.AddScoped<IChatClient, LiteLlmChatClient>();
 builder.Services.AddTransient<Agent, Agent>();
+builder.Services.AddSingleton<IAgentReporter, Loken.Cli.ConsoleReporter>();
+builder.Services.AddScoped<Agent>();
 
 builder.Configuration.Sources.Clear();
 builder.Configuration
@@ -22,6 +24,7 @@ await RunConsoleLoop(host.Services);
 async Task RunConsoleLoop(IServiceProvider services)
 {
     var agent = services.GetRequiredService<Agent>();
+    var reporter = services.GetRequiredService<IAgentReporter>();
     Console.WriteLine($"Loken Version: {agent.Version()}");
 
     while (true)
@@ -35,7 +38,7 @@ async Task RunConsoleLoop(IServiceProvider services)
 
         try
         {
-            Console.WriteLine($"❯❯ {await agent.Run(input)}");
+            await agent.Run(input);
         }
         catch (System.Exception ex)
         {

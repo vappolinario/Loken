@@ -14,7 +14,8 @@ public class AgentTest
     {
         var chat = Substitute.For<IChatClient>();
         var executor = Substitute.For<IShellExecutor>();
-        var agent = new Agent(executor, chat);
+        var reporter = Substitute.For<IAgentReporter>();
+        var agent = new Agent(executor, chat, reporter);
         var result = agent.Version();
         result.ShouldBe("0.1");
     }
@@ -36,7 +37,8 @@ public class AgentTest
             .Returns(Task.FromResult(mockResult));
 
         var executor = Substitute.For<IShellExecutor>();
-        var agent = new Agent(executor, chat);
+        var reporter = Substitute.For<IAgentReporter>();
+        var agent = new Agent(executor, chat, reporter);
         var result = await agent.Run("Test prompt");
         result.ShouldBe("Test response");
     }
@@ -46,6 +48,7 @@ public class AgentTest
     {
         var chat = Substitute.For<IChatClient>();
         var executor = Substitute.For<IShellExecutor>();
+        var reporter = Substitute.For<IAgentReporter>();
 
         var command = BinaryData.FromString("{\"command\": \"ls\"}");
         var toolCall = ChatToolCall.CreateFunctionToolCall("id123", "bash", command);
@@ -73,7 +76,7 @@ public class AgentTest
               new ShellResult("file1.txt\nfile2.txt", string.Empty, 0)
               ));
 
-        var agent = new Agent(executor, chat);
+        var agent = new Agent(executor, chat, reporter);
         var result = await agent.Run("Listar arquivos");
 
         await executor.Received(1).ExecuteAsync("ls");
@@ -103,7 +106,8 @@ public class AgentTest
         chat.CompleteChatAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatCompletionOptions>())
             .Returns(Task.FromResult(ClientResult.FromValue(mockToolResponse, Substitute.For<PipelineResponse>())));
 
-        var agent = new Agent(executor, chat);
+        var reporter = Substitute.For<IAgentReporter>();
+        var agent = new Agent(executor, chat, reporter);
 
         await Should.ThrowAsync<Exception>(async () => await agent.Run("Rode um script python"));
 

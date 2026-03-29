@@ -11,8 +11,9 @@ public class Agent
     private IShellExecutor _executor;
     private IChatClient _chatClient;
     private ChatCompletionOptions _options;
+    private IAgentReporter _reporter;
 
-    public Agent(IShellExecutor shellExecutor, IChatClient chatClient)
+    public Agent(IShellExecutor shellExecutor, IChatClient chatClient, IAgentReporter reporter)
     {
         _messages = new List<ChatMessage>()
         {
@@ -60,6 +61,7 @@ the logic is false, the empire falls."
 
         _chatClient = chatClient;
         _executor = shellExecutor;
+        _reporter = reporter;
     }
 
 
@@ -74,7 +76,13 @@ the logic is false, the empire falls."
         while (true)
         {
             var result = await _chatClient.CompleteChatAsync(_messages, _options);
-            _messages.Add(new AssistantChatMessage(result));
+            var x = new AssistantChatMessage(result);
+            _messages.Add(x);
+
+            foreach (var msg in x.Content)
+            {
+               _reporter.ReportMessage(msg.Text, false);
+            }
 
             if (result.Value.FinishReason != ChatFinishReason.ToolCalls)
                 return result.Value.Content[0].Text;
@@ -83,6 +91,7 @@ the logic is false, the empire falls."
             {
                 var toolResult = await ExecuteToolAsync(toolCall.FunctionName, toolCall.FunctionArguments);
                 _messages.Add(new ToolChatMessage(toolCall.Id, toolResult));
+                _reporter.ReportMessage(toolResult, true);
             }
         }
     }
@@ -96,7 +105,7 @@ the logic is false, the empire falls."
 
         if (!json.RootElement.TryGetProperty("command", out var commandProperty) ||
             commandProperty.GetString() is not string command)
-              throw new ArgumentNullException("Error: Missing parameter 'command'");
+            throw new ArgumentNullException("Error: Missing parameter 'command'");
 
         try
         {
