@@ -207,7 +207,7 @@ public class FileWriterHandlerTest : IDisposable
         var parameters = _handler.Parameters;
 
         name.ShouldBe("write_file");
-        description.ShouldBe("Read file contents");
+        description.ShouldBe( "Write content to a file");
         parameters.ShouldNotBeNull();
     }
 

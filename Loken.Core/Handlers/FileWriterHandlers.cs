@@ -8,7 +8,7 @@ public class FileWriterHandler : IToolHandler
 
     public string Name => "write_file";
 
-    public string Description => "Read file contents";
+    public string Description => "Write content to a file";
 
     public BinaryData Parameters => BinaryData.FromObjectAsJson(
                 new
@@ -60,7 +60,7 @@ public class FileWriterHandler : IToolHandler
         }
         catch (JsonException)
         {
-            throw new ExecutionFailedException("Invalid Json property 'path' was expected.");
+            throw new ExecutionFailedException("Invalid Json.");
         }
     }
 }
