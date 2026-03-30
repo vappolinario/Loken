@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddScoped<IChatClient, LiteLlmChatClient>();
+builder.Services.AddScoped<IChatClient, OpenAiChatClient>();
 builder.Services.AddTransient<Agent, Agent>();
 builder.Services.AddSingleton<IAgentReporter, Loken.Cli.ConsoleReporter>();
 builder.Services.AddScoped<Agent>();

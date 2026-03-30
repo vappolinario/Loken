@@ -5,11 +5,11 @@ using OpenAI.Chat;
 
 namespace Loken.Core;
 
-public class LiteLlmChatClient : IChatClient
+public class OpenAiChatClient : IChatClient
 {
     private ChatClient _chatClient;
 
-    public LiteLlmChatClient(IOptions<AiOptions> options)
+    public OpenAiChatClient(IOptions<AiOptions> options)
     {
         var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? string.Empty;
 
