@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
 using OpenAI.Chat;
 
 public class Agent
@@ -55,10 +54,10 @@ the logic is false, the empire falls."
         while (true)
         {
             var result = await _chatClient.CompleteChatAsync(_messages, _options);
-            var x = new AssistantChatMessage(result);
-            _messages.Add(x);
+            var assistantMessage = new AssistantChatMessage(result);
+            _messages.Add(assistantMessage);
 
-            foreach (var msg in x.Content)
+            foreach (var msg in assistantMessage.Content)
             {
                 _reporter.ReportMessage(msg.Text, false);
             }
@@ -66,33 +65,27 @@ the logic is false, the empire falls."
             if (result.Value.FinishReason != ChatFinishReason.ToolCalls)
                 return result.Value.Content[0].Text;
 
+            string output;
             foreach (var toolCall in result.Value.ToolCalls)
             {
                 try
                 {
-                    var toolResult = await ExecuteToolAsync(toolCall.FunctionName, toolCall.FunctionArguments);
-                    _messages.Add(new ToolChatMessage(toolCall.Id, toolResult));
-                    _reporter.ReportMessage(toolResult, true);
+                    output = await ExecuteToolAsync(toolCall.FunctionName, toolCall.FunctionArguments);
                 }
                 catch (ToolException ex) when (ex is ExecutionFailedException)
                 {
-                    _messages.Add(new ToolChatMessage(toolCall.Id, ex.Message));
-                    _reporter.ReportMessage(ex.Message, true);
+                    output = ex.Message;
                 }
-                catch (System.Exception)
-                {
-                    throw;
-                }
+                _messages.Add(new ToolChatMessage(toolCall.Id, output));
+                _reporter.ReportMessage(output, true);
             }
         }
     }
 
     public async Task<string> ExecuteToolAsync(string name, BinaryData input)
     {
-
         if (!_toolHandlers.TryGetValue(name, out var handler))
             throw new UnknownToolException(name);
-
 
         return await handler.ExecuteAsync(input);
     }

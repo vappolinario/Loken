@@ -6,9 +6,8 @@ using Microsoft.Extensions.Hosting;
 
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddScoped<IChatClient, OpenAiChatClient>();
-builder.Services.AddTransient<Agent, Agent>();
 builder.Services.AddSingleton<IAgentReporter, Loken.Cli.ConsoleReporter>();
-builder.Services.AddScoped<Agent>();
+builder.Services.AddTransient<Agent>();
 builder.Services.AddTransient<IToolHandler, ShellExecutorHandler>(sp => new ShellExecutorHandler(workingDirectory: "."));
 builder.Services.AddTransient<IToolHandler, FileReaderHandler>(sp => new FileReaderHandler(workingDirectory: "."));
 
@@ -32,11 +31,8 @@ async Task RunConsoleLoop(IServiceProvider services)
     {
         Console.Write("❯ ");
         var input = Console.ReadLine()?.Trim();
-
         if (String.IsNullOrEmpty(input)) continue;
-
         if (input.ToLower() is "exit" or "quit" or "q") break;
-
         try
         {
             await agent.Run(input);
