@@ -8,8 +8,9 @@ HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddScoped<IChatClient, OpenAiChatClient>();
 builder.Services.AddSingleton<IAgentReporter, Loken.Cli.ConsoleReporter>();
 builder.Services.AddTransient<Agent>();
-builder.Services.AddTransient<IToolHandler, ShellExecutorHandler>(sp => new ShellExecutorHandler(workingDirectory: "."));
-builder.Services.AddTransient<IToolHandler, FileReaderHandler>(sp => new FileReaderHandler(workingDirectory: "."));
+builder.Services.AddSingleton<IPathResolver, PathResolver>(pr => new PathResolver("."));
+builder.Services.AddTransient<IToolHandler, ShellExecutorHandler>();
+builder.Services.AddTransient<IToolHandler, FileReaderHandler>();
 
 builder.Configuration.Sources.Clear();
 builder.Configuration

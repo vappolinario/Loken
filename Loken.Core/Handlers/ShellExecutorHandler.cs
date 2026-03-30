@@ -11,7 +11,7 @@ public class ShellExecutorHandler : IToolHandler
         "rm -rf /", "sudo", "shutdown", "reboot", "> /dev/"
     ];
 
-    public string WorkingDirectory { get; init; }
+    private readonly IPathResolver _resolver;
 
     public string Name => "bash";
 
@@ -33,9 +33,9 @@ public class ShellExecutorHandler : IToolHandler
     });
 
 
-    public ShellExecutorHandler(string workingDirectory = ".")
+    public ShellExecutorHandler(IPathResolver resolver)
     {
-        WorkingDirectory = workingDirectory;
+      _resolver = resolver;
     }
 
     public async Task<string> ExecuteAsync(BinaryData input)
@@ -54,7 +54,7 @@ public class ShellExecutorHandler : IToolHandler
         {
             FileName = "/bin/bash",
             Arguments = $"-c \"{command.Replace("\"", "\\\"")}\"",
-            WorkingDirectory = WorkingDirectory,
+            WorkingDirectory = _resolver.WorkingDirectory,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,

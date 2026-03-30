@@ -7,7 +7,7 @@ public class FileReaderHandlerTest
     [Fact]
     public async Task FileHandler_ShouldPreventPathTraversal()
     {
-        var handler = new FileReaderHandler("/tmp/safe_zone");
+        var handler = new FileReaderHandler(new PathResolver( "/tmp/safe_zone"));
 
         var maliciousArgs = BinaryData.FromString("{\"path\": \"../../../etc/passwd\"}");
 

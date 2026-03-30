@@ -4,7 +4,7 @@ using System.Text.Json;
 
 public class FileReaderHandler : IToolHandler
 {
-    public string WorkingDirectory { get; init; }
+    private readonly IPathResolver _pathResolver;
 
     public string Name => "read_file";
 
@@ -32,9 +32,9 @@ public class FileReaderHandler : IToolHandler
                 });
 
 
-    public FileReaderHandler(string workingDirectory = ".")
+    public FileReaderHandler(IPathResolver pathResolver)
     {
-        WorkingDirectory = workingDirectory;
+        _pathResolver = pathResolver;
     }
 
     public async Task<string> ExecuteAsync(BinaryData input)
@@ -49,7 +49,7 @@ public class FileReaderHandler : IToolHandler
                         ? limitProp.GetInt32()
                         : 50000;
 
-            string safePath = ResolveSafePath(path);
+            string safePath = _pathResolver.ResolveSafePath(path);
 
             if (!File.Exists(safePath))
                 throw new ExecutionFailedException($"File not found: {path}");
@@ -78,14 +78,4 @@ public class FileReaderHandler : IToolHandler
         }
     }
 
-    private string ResolveSafePath(string relativePath)
-    {
-        string workingDir = Path.GetFullPath(WorkingDirectory).TrimEnd(Path.DirectorySeparatorChar);
-        string fullPath = Path.GetFullPath(Path.Combine(workingDir, relativePath));
-
-        if (!fullPath.StartsWith(workingDir, StringComparison.OrdinalIgnoreCase))
-            throw new ExecutionFailedException($"Directory outside working directory: {relativePath}");
-
-        return fullPath;
-    }
 }
