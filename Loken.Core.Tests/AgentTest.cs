@@ -77,12 +77,13 @@ public class AgentTest
         chat.CompleteChatAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatCompletionOptions>())
             .Returns(Task.FromResult(resultTool), Task.FromResult(resultFinal));
 
-        executor.ExecuteAsync("ls").Returns(Task.FromResult("file1.txt\nfile2.txt"));
+
+        executor.ExecuteAsync(command).Returns(Task.FromResult("file1.txt\nfile2.txt"));
 
         var agent = new Agent(handlers, chat, reporter);
         var result = await agent.Run("Listar arquivos");
 
-        await executor.Received(1).ExecuteAsync("ls");
+        await executor.Received(1).ExecuteAsync(command);
         await chat.Received().CompleteChatAsync(Arg.Is<IEnumerable<ChatMessage>>(msgs =>
             msgs.Any(m =>
                 m is ToolChatMessage &&
@@ -115,7 +116,7 @@ public class AgentTest
         var agent = new Agent(handlers, chat, reporter);
 
         await Should.ThrowAsync<Exception>(async () => await agent.Run("Rode um script python"));
-        await executor.DidNotReceive().ExecuteAsync(Arg.Any<string>());
+        await executor.DidNotReceive().ExecuteAsync(Arg.Any<BinaryData>());
     }
     [Fact]
     public async Task Run_WithMultipleHandlers_ShouldInvokeCorrectHandlerByName()
@@ -153,8 +154,8 @@ public class AgentTest
         var agent = new Agent(handlers, chatClient, reporter);
 
         await agent.Run("Listar arquivos");
-        await bashHandler.Received(1).ExecuteAsync(Arg.Is<string>(s => s.Contains("ls")));
-        await echoHandler.DidNotReceive().ExecuteAsync(Arg.Any<string>());
+        await bashHandler.Received(1).ExecuteAsync(Arg.Is<BinaryData>(s => s.ToString().Contains("ls")));
+        await echoHandler.DidNotReceive().ExecuteAsync(Arg.Any<BinaryData>());
     }
 }
 #pragma warning restore OPENAI001

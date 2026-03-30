@@ -2,16 +2,21 @@ namespace Loken.Core;
 
 using Shouldly;
 
-public class ShellExecutorTest
+public class ShellExecutorHandlerTest
 {
     [Theory]
     [InlineData("rm -rf /")]
     [InlineData("sudo rm -rf /")]
     [InlineData("reboot")]
     [InlineData("shutdown")]
-    public async Task Version_AgentMustReturnVersionNumber(string command)
+    public async Task Version_ShellExecutor_ShouldNotRunDangerousCommands(string command)
     {
-        var executor = new ShellExecutor();
-        await Should.ThrowAsync<System.Security.SecurityException>(async () => await executor.ExecuteAsync(command));
+        var executor = new ShellExecutorHandler();
+        var json = BinaryData.FromString($$"""
+{
+  "command": "{{command}}"
+}
+""");
+        await Should.ThrowAsync<System.Security.SecurityException>(async () => await executor.ExecuteAsync(json));
     }
 }
