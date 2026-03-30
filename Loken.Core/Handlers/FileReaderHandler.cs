@@ -77,5 +77,4 @@ public class FileReaderHandler : IToolHandler
             throw new ExecutionFailedException("Invalid Json property 'path' was expected.");
         }
     }
-
 }

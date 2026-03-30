@@ -9,7 +9,7 @@ public class PathResolverTests
 
     public PathResolverTests()
     {
-        _basePath = Path.Combine(Path.GetTempPath(), "loken_test");
+        _basePath  = Path.Combine(Path.GetTempPath(), $"loken_test_{Guid.NewGuid()}");
         _resolver = new PathResolver(_basePath);
     }
 
