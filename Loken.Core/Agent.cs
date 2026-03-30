@@ -93,12 +93,7 @@ the logic is false, the empire falls."
         if (!_toolHandlers.TryGetValue(name, out var handler))
             throw new UnknownToolException(name);
 
-        var json = JsonDocument.Parse(input);
 
-        if (!json.RootElement.TryGetProperty("command", out var commandProperty) ||
-            commandProperty.GetString() is not string command)
-            throw new MissingParameterException("command");
-
-        return await handler.ExecuteAsync(command);
+        return await handler.ExecuteAsync(input);
     }
 }
