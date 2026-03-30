@@ -12,6 +12,7 @@ builder.Services.AddSingleton<IPathResolver, PathResolver>(pr => new PathResolve
 builder.Services.AddTransient<IToolHandler, ShellExecutorHandler>();
 builder.Services.AddTransient<IToolHandler, FileReaderHandler>();
 builder.Services.AddTransient<IToolHandler, FileWriterHandler>();
+builder.Services.AddTransient<IToolHandler, FileEditorHandler>();
 
 builder.Configuration.Sources.Clear();
 builder.Configuration
