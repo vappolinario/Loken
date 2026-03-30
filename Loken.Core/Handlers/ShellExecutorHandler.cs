@@ -2,8 +2,9 @@ namespace Loken.Core;
 
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 
-public class ShellExecutor : IToolHandler
+public class ShellExecutorHandler : IToolHandler
 {
     private static readonly string[] DangerousPatterns =
     [
@@ -32,13 +33,19 @@ public class ShellExecutor : IToolHandler
     });
 
 
-    public ShellExecutor(string workingDirectory = ".")
+    public ShellExecutorHandler(string workingDirectory = ".")
     {
         WorkingDirectory = workingDirectory;
     }
 
-    public async Task<string> ExecuteAsync(string command)
+    public async Task<string> ExecuteAsync(BinaryData input)
     {
+        var json = JsonDocument.Parse(input);
+
+        if (!json.RootElement.TryGetProperty("command", out var commandProperty) ||
+            commandProperty.GetString() is not string command)
+            throw new MissingParameterException("command");
+
         if (DangerousPatterns.FirstOrDefault(p => command.Contains(p)) is string blocked)
             throw new System.Security.SecurityException(
                 $"Error: Dangerous command blocked (matched '{blocked}')");

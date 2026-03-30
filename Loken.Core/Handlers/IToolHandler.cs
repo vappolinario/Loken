@@ -6,5 +6,5 @@ public interface IToolHandler
     string Description { get; }
     BinaryData Parameters { get; }
     public string WorkingDirectory { get; init; }
-    public Task<string> ExecuteAsync(string command);
+    public Task<string> ExecuteAsync(BinaryData input);
 }
