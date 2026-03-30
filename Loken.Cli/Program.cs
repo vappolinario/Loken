@@ -9,7 +9,8 @@ builder.Services.AddScoped<IChatClient, OpenAiChatClient>();
 builder.Services.AddTransient<Agent, Agent>();
 builder.Services.AddSingleton<IAgentReporter, Loken.Cli.ConsoleReporter>();
 builder.Services.AddScoped<Agent>();
-builder.Services.AddTransient<IToolHandler, ShellExecutor>(sp => new ShellExecutor(workingDirectory: "."));
+builder.Services.AddTransient<IToolHandler, ShellExecutorHandler>(sp => new ShellExecutorHandler(workingDirectory: "."));
+builder.Services.AddTransient<IToolHandler, FileReaderHandler>(sp => new FileReaderHandler(workingDirectory: "."));
 
 builder.Configuration.Sources.Clear();
 builder.Configuration
