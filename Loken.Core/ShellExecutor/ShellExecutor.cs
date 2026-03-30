@@ -3,7 +3,7 @@ namespace Loken.Core;
 using System.Diagnostics;
 using System.Text;
 
-public class ShellExecutor : IShellExecutor
+public class ShellExecutor : IToolHandler
 {
     private static readonly string[] DangerousPatterns =
     [
@@ -12,16 +12,36 @@ public class ShellExecutor : IShellExecutor
 
     public string WorkingDirectory { get; init; }
 
+    public string Name => "bash";
+
+    public string Description => "Run a shell command and return its output.";
+
+    public BinaryData Parameters => BinaryData.FromObjectAsJson(
+                new
+                {
+                    type = "object",
+                    properties = new
+                    {
+                        command = new
+                        {
+                            type = "string",
+                            description = "The shell command to execute"
+                        }
+                    },
+                    required = new[] { "command" }
+    });
+
+
     public ShellExecutor(string workingDirectory = ".")
     {
         WorkingDirectory = workingDirectory;
     }
 
-    public async Task<ShellResult> ExecuteAsync(string command)
+    public async Task<string> ExecuteAsync(string command)
     {
         if (DangerousPatterns.FirstOrDefault(p => command.Contains(p)) is string blocked)
-          throw new System.Security.SecurityException(
-              $"Error: Dangerous command blocked (matched '{blocked}')");
+            throw new System.Security.SecurityException(
+                $"Error: Dangerous command blocked (matched '{blocked}')");
 
         var startInfo = new ProcessStartInfo
         {
@@ -50,11 +70,14 @@ public class ShellExecutor : IShellExecutor
             var stdout = await stdoutTask;
             var stderr = await stderrTask;
 
-            return new ShellResult(stdout, stderr, process.ExitCode);
+            if (process.ExitCode != 0 || !string.IsNullOrWhiteSpace(stderr))
+                throw new Loken.Core.ExecutionFailedException(stderr);
+
+            return stdout;
         }
         catch (Exception ex)
         {
-            return new ShellResult("", $"Exception: {ex.Message}", 1);
+            throw new ExecutionFailedException(ex.Message);
         }
     }
 }

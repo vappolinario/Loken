@@ -5,11 +5,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddScoped<IShellExecutor>(sp => new ShellExecutor(workingDirectory: "."));
 builder.Services.AddScoped<IChatClient, LiteLlmChatClient>();
 builder.Services.AddTransient<Agent, Agent>();
 builder.Services.AddSingleton<IAgentReporter, Loken.Cli.ConsoleReporter>();
 builder.Services.AddScoped<Agent>();
+builder.Services.AddTransient<IToolHandler, ShellExecutor>(sp => new ShellExecutor(workingDirectory: "."));
 
 builder.Configuration.Sources.Clear();
 builder.Configuration

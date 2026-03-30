@@ -13,9 +13,10 @@ public class AgentTest
     public void Version_AgentMustReturnVersionNumber()
     {
         var chat = Substitute.For<IChatClient>();
-        var executor = Substitute.For<IShellExecutor>();
         var reporter = Substitute.For<IAgentReporter>();
-        var agent = new Agent(executor, chat, reporter);
+        var executor = Substitute.For<IToolHandler>();
+        var handlers = new List<IToolHandler> { executor };
+        var agent = new Agent(handlers, chat, reporter);
         var result = agent.Version();
         result.ShouldBe("0.1");
     }
@@ -36,9 +37,11 @@ public class AgentTest
         chat.CompleteChatAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatCompletionOptions>())
             .Returns(Task.FromResult(mockResult));
 
-        var executor = Substitute.For<IShellExecutor>();
+        var executor = Substitute.For<IToolHandler>();
+        executor.Name.Returns("bash");
+        var handlers = new List<IToolHandler> { executor };
         var reporter = Substitute.For<IAgentReporter>();
-        var agent = new Agent(executor, chat, reporter);
+        var agent = new Agent(handlers, chat, reporter);
         var result = await agent.Run("Test prompt");
         result.ShouldBe("Test response");
     }
@@ -47,7 +50,9 @@ public class AgentTest
     public async Task ChatWithTool_AgentMustExecuteShellCommandAndReturnResult()
     {
         var chat = Substitute.For<IChatClient>();
-        var executor = Substitute.For<IShellExecutor>();
+        var executor = Substitute.For<IToolHandler>();
+        executor.Name.Returns("bash");
+        var handlers = new List<IToolHandler> { executor };
         var reporter = Substitute.For<IAgentReporter>();
 
         var command = BinaryData.FromString("{\"command\": \"ls\"}");
@@ -72,11 +77,9 @@ public class AgentTest
         chat.CompleteChatAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatCompletionOptions>())
             .Returns(Task.FromResult(resultTool), Task.FromResult(resultFinal));
 
-        executor.ExecuteAsync("ls").Returns(Task.FromResult(
-              new ShellResult("file1.txt\nfile2.txt", string.Empty, 0)
-              ));
+        executor.ExecuteAsync("ls").Returns(Task.FromResult("file1.txt\nfile2.txt"));
 
-        var agent = new Agent(executor, chat, reporter);
+        var agent = new Agent(handlers, chat, reporter);
         var result = await agent.Run("Listar arquivos");
 
         await executor.Received(1).ExecuteAsync("ls");
@@ -90,10 +93,11 @@ public class AgentTest
     }
 
     [Fact]
-    public async Task Run_ShouldThrowException_WhenToolNameIsNotBash()
+    public async Task Run_ShouldThrowException_WhenToolNameIsNotRegistered()
     {
         var chat = Substitute.For<IChatClient>();
-        var executor = Substitute.For<IShellExecutor>();
+        var executor = Substitute.For<IToolHandler>();
+        executor.Name.Returns("bash");
 
         var toolCall = ChatToolCall.CreateFunctionToolCall("id123", "python_script", BinaryData.FromString("{}"));
 
@@ -107,11 +111,50 @@ public class AgentTest
             .Returns(Task.FromResult(ClientResult.FromValue(mockToolResponse, Substitute.For<PipelineResponse>())));
 
         var reporter = Substitute.For<IAgentReporter>();
-        var agent = new Agent(executor, chat, reporter);
+        var handlers = new List<IToolHandler> { executor };
+        var agent = new Agent(handlers, chat, reporter);
 
         await Should.ThrowAsync<Exception>(async () => await agent.Run("Rode um script python"));
-
         await executor.DidNotReceive().ExecuteAsync(Arg.Any<string>());
+    }
+    [Fact]
+    public async Task Run_WithMultipleHandlers_ShouldInvokeCorrectHandlerByName()
+    {
+        var chatClient = Substitute.For<IChatClient>();
+
+        var bashHandler = Substitute.For<IToolHandler>();
+        bashHandler.Name.Returns("bash");
+
+        var echoHandler = Substitute.For<IToolHandler>();
+        echoHandler.Name.Returns("echo");
+
+        var reporter = Substitute.For<IAgentReporter>();
+
+        var toolCall = ChatToolCall.CreateFunctionToolCall("id123", "bash", BinaryData.FromString("{\"command\": \"ls\"}"));
+
+        var mockToolResponse = OpenAIChatModelFactory.ChatCompletion(
+            finishReason: ChatFinishReason.ToolCalls,
+            toolCalls: [toolCall],
+            role: ChatMessageRole.Assistant
+        );
+        var mockFinalResponse = OpenAIChatModelFactory.ChatCompletion(
+            content: ["Sucesso"],
+            finishReason: ChatFinishReason.Stop,
+            role: ChatMessageRole.Assistant
+        );
+
+        chatClient.CompleteChatAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatCompletionOptions>())
+            .Returns(
+                Task.FromResult(ClientResult.FromValue(mockToolResponse, Substitute.For<PipelineResponse>())),
+                Task.FromResult(ClientResult.FromValue(mockFinalResponse, Substitute.For<PipelineResponse>()))
+            );
+
+        var handlers = new List<IToolHandler> { bashHandler, echoHandler };
+        var agent = new Agent(handlers, chatClient, reporter);
+
+        await agent.Run("Listar arquivos");
+        await bashHandler.Received(1).ExecuteAsync(Arg.Is<string>(s => s.Contains("ls")));
+        await echoHandler.DidNotReceive().ExecuteAsync(Arg.Any<string>());
     }
 }
 #pragma warning restore OPENAI001

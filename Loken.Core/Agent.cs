@@ -8,12 +8,12 @@ using OpenAI.Chat;
 public class Agent
 {
     private List<ChatMessage> _messages;
-    private IShellExecutor _executor;
-    private IChatClient _chatClient;
+    private readonly IChatClient _chatClient;
     private ChatCompletionOptions _options;
     private IAgentReporter _reporter;
+    private Dictionary<string, IToolHandler> _toolHandlers;
 
-    public Agent(IShellExecutor shellExecutor, IChatClient chatClient, IAgentReporter reporter)
+    public Agent(IEnumerable<IToolHandler> handlers, IChatClient chatClient, IAgentReporter reporter)
     {
         _messages = new List<ChatMessage>()
         {
@@ -35,35 +35,14 @@ the logic is false, the empire falls."
 """)
         };
 
-        var schema = new
-        {
-            type = "object",
-            properties = new
-            {
-                command = new
-                {
-                    type = "string",
-                    description = "The shell command to execute"
-                }
-            },
-            required = new[] { "command" }
-        };
-
-        _options = new()
-        {
-            Tools = { ChatTool.CreateFunctionTool(
-                      functionName: "bash",
-                      functionDescription: "Run a shell command and return its output.",
-                      functionParameters: BinaryData.FromObjectAsJson(schema)
-                    )
-            }
-        };
+        _toolHandlers = handlers.ToDictionary(h => h.Name, h => h);
+        _options = new ChatCompletionOptions();
+        foreach (var tool in handlers.ToChatTools())
+            _options.Tools.Add(tool);
 
         _chatClient = chatClient;
-        _executor = shellExecutor;
         _reporter = reporter;
     }
-
 
     public string Version()
     {
@@ -81,7 +60,7 @@ the logic is false, the empire falls."
 
             foreach (var msg in x.Content)
             {
-               _reporter.ReportMessage(msg.Text, false);
+                _reporter.ReportMessage(msg.Text, false);
             }
 
             if (result.Value.FinishReason != ChatFinishReason.ToolCalls)
@@ -89,32 +68,37 @@ the logic is false, the empire falls."
 
             foreach (var toolCall in result.Value.ToolCalls)
             {
-                var toolResult = await ExecuteToolAsync(toolCall.FunctionName, toolCall.FunctionArguments);
-                _messages.Add(new ToolChatMessage(toolCall.Id, toolResult));
-                _reporter.ReportMessage(toolResult, true);
+                try
+                {
+                    var toolResult = await ExecuteToolAsync(toolCall.FunctionName, toolCall.FunctionArguments);
+                    _messages.Add(new ToolChatMessage(toolCall.Id, toolResult));
+                    _reporter.ReportMessage(toolResult, true);
+                }
+                catch (ToolException ex) when (ex is ExecutionFailedException)
+                {
+                    _messages.Add(new ToolChatMessage(toolCall.Id, ex.Message));
+                    _reporter.ReportMessage(ex.Message, true);
+                }
+                catch (System.Exception)
+                {
+                    throw;
+                }
             }
         }
     }
 
     public async Task<string> ExecuteToolAsync(string name, BinaryData input)
     {
-        if (name != "bash")
-            throw new InvalidOperationException($"Unknown tool: {name}");
+
+        if (!_toolHandlers.TryGetValue(name, out var handler))
+            throw new UnknownToolException(name);
 
         var json = JsonDocument.Parse(input);
 
         if (!json.RootElement.TryGetProperty("command", out var commandProperty) ||
             commandProperty.GetString() is not string command)
-            throw new ArgumentNullException("Error: Missing parameter 'command'");
+            throw new MissingParameterException("command");
 
-        try
-        {
-            var result = await _executor.ExecuteAsync(command);
-            return result.Formatted;
-        }
-        catch (Exception ex)
-        {
-            return $"Execution failed: {ex.Message}";
-        }
+        return await handler.ExecuteAsync(command);
     }
 }
