@@ -7,12 +7,17 @@ using OpenAI.Chat;
 public class Agent
 {
     private List<ChatMessage> _messages;
+    private readonly IEnumerable<IToolHandler> handlers;
     private readonly IChatClient _chatClient;
     private ChatCompletionOptions _options;
     private IAgentReporter _reporter;
+    private readonly TodoManager _todoManager;
     private Dictionary<string, IToolHandler> _toolHandlers;
 
-    public Agent(IEnumerable<IToolHandler> handlers, IChatClient chatClient, IAgentReporter reporter)
+    public Agent(IEnumerable<IToolHandler> handlers,
+        IChatClient chatClient,
+        IAgentReporter reporter,
+        TodoManager todoManager)
     {
         _messages = new List<ChatMessage>()
         {
@@ -28,12 +33,14 @@ Before any action is taken, you MUST present a **Battle Plan** (Strategy) to the
 - Analyze the situation and explain your intended path.
 - **You MUST wait for the User's approval of the strategy** before executing any tools.
 - Once the strategy is approved, you have full tactical autonomy to execute all necessary tool calls to complete the mission without further interruption.
+- The Battle Plan MUST use the todo tool if avaiable
 
 ## 2. Tactical Execution & Tool Hierarchy
 When executing an approved plan, follow this chain of command for your tools:
 - **Specialized Tools First:** Always prefer dedicated tools for exploring the filesystem, reading, and writing files. They are your primary weapons.
 - **The Bash Fallback:** Use the `bash` tool only as a secondary alternative when specialized tools are unavailable, insufficient for the task, or have failed to yield the "Truth".
 - **Verification:** Always check the result of every command. If a test fails, analyze why with a stoic and philosophical perspective.
+- **Report:** Update the todo list when reporting progress
 
 ## 3. Style and Tone
 - **Voice:** Formal, honest, and deeply respectful of the craft.
@@ -47,9 +54,10 @@ When executing an approved plan, follow this chain of command for your tools:
         _options = new ChatCompletionOptions();
         foreach (var tool in handlers.ToChatTools())
             _options.Tools.Add(tool);
-
+        this.handlers = handlers;
         _chatClient = chatClient;
         _reporter = reporter;
+        this._todoManager = todoManager;
     }
 
     public string Version()
@@ -60,6 +68,7 @@ When executing an approved plan, follow this chain of command for your tools:
     public async Task<string> Run(string prompt)
     {
         _messages.Add(new UserChatMessage(prompt));
+        var turnsWithoutTodo = 0;
         while (true)
         {
             var result = await _chatClient.CompleteChatAsync(_messages, _options);
@@ -75,6 +84,7 @@ When executing an approved plan, follow this chain of command for your tools:
                 return result.Value.Content[0].Text;
 
             string output;
+            var todoCalled = false;
             foreach (var toolCall in result.Value.ToolCalls)
             {
                 try
@@ -85,9 +95,18 @@ When executing an approved plan, follow this chain of command for your tools:
                 {
                     output = ex.Message;
                 }
+
+                if (toolCall.FunctionName == "todo" )
+                  todoCalled = true;
+
                 _messages.Add(new ToolChatMessage(toolCall.Id, output));
                 _reporter.ReportMessage(output, true);
             }
+
+            turnsWithoutTodo = todoCalled ? 0 : turnsWithoutTodo++;
+
+            if ( turnsWithoutTodo >= 3 && _todoManager.Todos.Count(t => t.Status == TodoStatus.Todo) > 0)
+              _messages.Add(new AssistantChatMessage("Update your todos"));
         }
     }
 

@@ -13,6 +13,7 @@ public class AgentTest
     private readonly IAgentReporter _reporter;
     private readonly IToolHandler _bashHandler;
     private readonly IToolHandler _echoHandler;
+    private readonly TodoManager _todoManager;
     private readonly Agent _agent;
 
     public AgentTest()
@@ -26,9 +27,11 @@ public class AgentTest
         _echoHandler = Substitute.For<IToolHandler>();
         _echoHandler.Name.Returns("echo");
 
+        _todoManager = Substitute.For<TodoManager>();
+
         var handlers = new List<IToolHandler> { _bashHandler, _echoHandler };
 
-        _agent = new Agent(handlers, _chat, _reporter);
+        _agent = new Agent(handlers, _chat, _reporter, _todoManager);
     }
 
     [Fact]
