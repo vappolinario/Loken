@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Loken.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +14,7 @@ builder.Services.AddTransient<IToolHandler, FileReaderHandler>();
 builder.Services.AddTransient<IToolHandler, FileWriterHandler>();
 builder.Services.AddTransient<IToolHandler, FileEditorHandler>();
 builder.Services.AddTransient<TodoManager>();
+builder.Services.AddTransient<ITodoService, TodoService>();
 builder.Services.AddTransient<IToolHandler, TodoHandler>();
 
 builder.Configuration.Sources.Clear();

@@ -207,7 +207,7 @@ public class FileWriterHandlerTest : IDisposable
         var parameters = _handler.Parameters;
 
         name.ShouldBe("write_file");
-        description.ShouldBe( "Write content to a file");
+        description.ShouldBe("Write content to a file");
         parameters.ShouldNotBeNull();
     }
 
@@ -222,7 +222,7 @@ public class FileWriterHandlerTest : IDisposable
         }
         catch
         {
-          // ignore cleanup errors
+            // ignore cleanup errors
         }
     }
 }

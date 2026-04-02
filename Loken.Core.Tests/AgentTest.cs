@@ -1,4 +1,4 @@
-﻿#pragma warning disable OPENAI001
+#pragma warning disable OPENAI001
 namespace Loken.Core.Tests;
 
 using System.ClientModel;
@@ -13,7 +13,7 @@ public class AgentTest
     private readonly IAgentReporter _reporter;
     private readonly IToolHandler _bashHandler;
     private readonly IToolHandler _echoHandler;
-    private readonly TodoManager _todoManager;
+    private readonly ITodoService _todoService;
     private readonly Agent _agent;
 
     public AgentTest()
@@ -27,11 +27,11 @@ public class AgentTest
         _echoHandler = Substitute.For<IToolHandler>();
         _echoHandler.Name.Returns("echo");
 
-        _todoManager = Substitute.For<TodoManager>();
+        _todoService = Substitute.For<ITodoService>();
 
         var handlers = new List<IToolHandler> { _bashHandler, _echoHandler };
 
-        _agent = new Agent(handlers, _chat, _reporter, _todoManager);
+        _agent = new Agent(handlers, _chat, _reporter, _todoService);
     }
 
     [Fact]

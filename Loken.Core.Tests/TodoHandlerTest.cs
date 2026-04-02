@@ -7,12 +7,12 @@ using System.Text.Json;
 public class TodoHandlerTest
 {
     private readonly TodoHandler _handler;
-    private readonly TodoManager _todoManager;
+    private readonly ITodoService _todoService;
 
     public TodoHandlerTest()
     {
-        _todoManager = Substitute.For<TodoManager>();
-        _handler = new TodoHandler(_todoManager);
+        _todoService = Substitute.For<ITodoService>();
+        _handler = new TodoHandler(_todoService);
     }
 
     [Fact]
@@ -39,6 +39,13 @@ public class TodoHandlerTest
         var json = JsonSerializer.Serialize(input);
         var binaryData = BinaryData.FromString(json);
 
+        _todoService.ToString().Returns(@"[ ] First task
+[>] Second task
+[X] Third task
+
+1/3 tasks completed
+");
+
         var result = await _handler.ExecuteAsync(binaryData);
 
         var expected = @"[ ] First task
@@ -61,6 +68,8 @@ public class TodoHandlerTest
         var json = JsonSerializer.Serialize(input);
         var binaryData = BinaryData.FromString(json);
 
+        _todoService.ToString().Returns("\n0/0 tasks completed\n");
+
         var result = await _handler.ExecuteAsync(binaryData);
 
         result.ShouldBe("\n0/0 tasks completed\n");
@@ -79,6 +88,8 @@ public class TodoHandlerTest
 
         var json = JsonSerializer.Serialize(input);
         var binaryData = BinaryData.FromString(json);
+
+        _todoService.ToString().Returns("[ ] Only one task\n\n0/1 tasks completed\n");
 
         var result = await _handler.ExecuteAsync(binaryData);
 
@@ -254,6 +265,13 @@ public class TodoHandlerTest
         var json = JsonSerializer.Serialize(input);
         var binaryData = BinaryData.FromString(json);
 
+        _todoService.ToString().Returns(@"[ ] Todo task
+[>] Doing task
+[X] Done task
+
+1/3 tasks completed
+");
+
         var result = await _handler.ExecuteAsync(binaryData);
 
         var expected = @"[ ] Todo task
@@ -279,6 +297,12 @@ public class TodoHandlerTest
 
         var json = JsonSerializer.Serialize(input);
         var binaryData = BinaryData.FromString(json);
+
+        _todoService.ToString().Returns(@"[ ] First task
+[>] Second task
+
+0/2 tasks completed
+");
 
         var result = await _handler.ExecuteAsync(binaryData);
 
@@ -387,6 +411,13 @@ public class TodoHandlerTest
 
         var json = JsonSerializer.Serialize(input);
         var binaryData = BinaryData.FromString(json);
+
+        _todoService.ToString().Returns(@"[ ] Task with uppercase status
+[>] Task with mixed case status
+[X] Task with lowercase status
+
+1/3 tasks completed
+");
 
         var result = await _handler.ExecuteAsync(binaryData);
 
