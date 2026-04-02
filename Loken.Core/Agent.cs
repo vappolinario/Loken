@@ -71,7 +71,7 @@ public partial class Agent
             }
 
             if (_todoService.ShouldRemindAboutTodos())
-                _messages.Add(new AssistantChatMessage("Update your todos"));
+                _messages.Add(new AssistantChatMessage("If you have an APPROVED strategy update your todos"));
         }
     }
 
