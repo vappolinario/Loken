@@ -15,11 +15,6 @@ public class TodoService : ITodoService
         _todoCalledThisTurn = false;
     }
 
-    public void Update(IList<TodoItem> todos)
-    {
-        _todoManager.Update(todos);
-    }
-
     public void MarkTodoCalled()
     {
         _todoCalledThisTurn = true;
@@ -37,11 +32,10 @@ public class TodoService : ITodoService
             _turnsWithoutTodo++;
         }
 
-        return _turnsWithoutTodo >= 3 && Todos.Count(t => t.Status == TodoStatus.Todo) > 0;
+        return _turnsWithoutTodo >= 3 && Todos.Any(t => t.Status == TodoStatus.Todo);
     }
 
-    public override string ToString()
-    {
-        return _todoManager.ToString();
-    }
+    public void Update(IList<TodoItem> todos) => _todoManager.Update(todos);
+
+    public override string ToString() => _todoManager.ToString();
 }

@@ -6,32 +6,30 @@ using OpenAI.Chat;
 
 public partial class Agent
 {
-    private List<ChatMessage> _messages;
-    private readonly IEnumerable<IToolHandler> handlers;
+    private readonly List<ChatMessage> _messages;
+    private readonly IEnumerable<IToolHandler> _handlers;
     private readonly IChatClient _chatClient;
-    private ChatCompletionOptions _options;
-    private IAgentReporter _reporter;
+    private readonly ChatCompletionOptions _options;
+    private readonly IAgentReporter _reporter;
     private readonly ITodoService _todoService;
-    private Dictionary<string, IToolHandler> _toolHandlers;
+    private readonly Dictionary<string, IToolHandler> _toolHandlers;
 
     public Agent(IEnumerable<IToolHandler> handlers,
-        IChatClient chatClient,
-        IAgentReporter reporter,
-        ITodoService todoService)
+                 IChatClient chatClient,
+                 IAgentReporter reporter,
+                 ITodoService todoService)
     {
-        _messages = new List<ChatMessage>()
-        {
-          new SystemChatMessage(_systemPrompt)
-        };
+        _messages = new() { new SystemChatMessage(_systemPrompt) };
 
         _toolHandlers = handlers.ToDictionary(h => h.Name, h => h);
+        _handlers = handlers;
         _options = new ChatCompletionOptions();
-        foreach (var tool in handlers.ToChatTools())
+        foreach (var tool in _handlers.ToChatTools())
             _options.Tools.Add(tool);
-        this.handlers = handlers;
+
         _chatClient = chatClient;
         _reporter = reporter;
-        this._todoService = todoService;
+        _todoService = todoService;
     }
 
     public string Version()
@@ -56,9 +54,9 @@ public partial class Agent
             if (result.Value.FinishReason != ChatFinishReason.ToolCalls)
                 return result.Value.Content[0].Text;
 
-            string output;
             foreach (var toolCall in result.Value.ToolCalls)
             {
+                string output = string.Empty;
                 try
                 {
                     output = await ExecuteToolAsync(toolCall.FunctionName, toolCall.FunctionArguments);
