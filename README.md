@@ -25,7 +25,7 @@ This project was developed based on [Ivan Magda's blog post](https://ivanmagda.d
 
 1. **Clone the repository:**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/vappolinario/Loken.git
    cd loken
    ```
 
