@@ -34,7 +34,7 @@ public partial class Agent
 
     public string Version()
     {
-        return "0.1";
+        return VersionInfo.Version;
     }
 
     public async Task<string> Run(string prompt)

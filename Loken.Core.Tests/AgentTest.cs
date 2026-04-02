@@ -37,7 +37,15 @@ public class AgentTest
     [Fact]
     public void Version_AgentMustReturnVersionNumber()
     {
-        _agent.Version().ShouldBe("0.1");
+        var version = _agent.Version();
+        version.ShouldStartWith("0.1-");
+
+        var suffix = version.Substring(4);
+        if (suffix != "unknown")
+        {
+            suffix.Length.ShouldBeGreaterThanOrEqualTo(7);
+            System.Text.RegularExpressions.Regex.IsMatch(suffix, "^[0-9a-f]+$").ShouldBeTrue();
+        }
     }
 
     [Fact]
