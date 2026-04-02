@@ -72,6 +72,7 @@ public class TodoHandler : IToolHandler
             }
 
             _todoService.Update(newList);
+            _todoService.MarkTodoCalled();
 
             return _todoService.ToString();
 

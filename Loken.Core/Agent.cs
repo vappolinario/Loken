@@ -66,9 +66,6 @@ public partial class Agent
                     output = ex.Message;
                 }
 
-                if (toolCall.FunctionName == "todo")
-                    _todoService.MarkTodoCalled();
-
                 _messages.Add(new ToolChatMessage(toolCall.Id, output));
                 _reporter.ReportMessage(output, true);
             }

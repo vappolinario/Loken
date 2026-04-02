@@ -14,7 +14,7 @@ builder.Services.AddTransient<IToolHandler, FileReaderHandler>();
 builder.Services.AddTransient<IToolHandler, FileWriterHandler>();
 builder.Services.AddTransient<IToolHandler, FileEditorHandler>();
 builder.Services.AddTransient<TodoManager>();
-builder.Services.AddTransient<ITodoService, TodoService>();
+builder.Services.AddSingleton<ITodoService, TodoService>();
 builder.Services.AddTransient<IToolHandler, TodoHandler>();
 
 builder.Configuration.Sources.Clear();
