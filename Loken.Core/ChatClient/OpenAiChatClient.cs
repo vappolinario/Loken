@@ -11,10 +11,11 @@ public class OpenAiChatClient : IChatClient
 
     public OpenAiChatClient(IOptions<AiOptions> options)
     {
-        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? string.Empty;
+        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")
+                     ?? string.Empty;
 
         _chatClient = new(
-            model: "chat",
+            model: options.Value.Model,
             credential: new ApiKeyCredential(apiKey),
             options: new OpenAIClientOptions()
             {
@@ -22,8 +23,10 @@ public class OpenAiChatClient : IChatClient
             });
     }
 
-    public async Task<ClientResult<ChatCompletion>> CompleteChatAsync(IEnumerable<ChatMessage> messages, ChatCompletionOptions options)
-    {
-        return await _chatClient.CompleteChatAsync(messages, options);
-    }
+    public async Task<ClientResult<ChatCompletion>> CompleteChatAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatCompletionOptions options)
+        => await _chatClient.CompleteChatAsync(
+            messages,
+            options);
 }
