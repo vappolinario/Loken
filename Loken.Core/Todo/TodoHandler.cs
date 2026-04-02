@@ -4,7 +4,7 @@ using System.Text.Json;
 
 public class TodoHandler : IToolHandler
 {
-    private readonly TodoManager _todoManager;
+    private readonly ITodoService _todoService;
 
     public string Name => "todo";
 
@@ -38,9 +38,9 @@ public class TodoHandler : IToolHandler
         required = new[] { "items" }
     });
 
-    public TodoHandler(TodoManager todoManager)
+    public TodoHandler(ITodoService todoService)
     {
-        _todoManager = todoManager;
+        _todoService = todoService;
     }
 
     public async Task<string> ExecuteAsync(BinaryData input)
@@ -71,9 +71,9 @@ public class TodoHandler : IToolHandler
                 newList.Add(new() { Id = id, Text = text, Status = status });
             }
 
-            _todoManager.Update(newList);
+            _todoService.Update(newList);
 
-            return _todoManager.ToString();
+            return _todoService.ToString();
 
         }
         catch (JsonException)

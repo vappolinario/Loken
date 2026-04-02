@@ -1,4 +1,4 @@
-﻿namespace Loken.Core;
+namespace Loken.Core;
 
 using System;
 using System.Collections.Generic;
@@ -11,13 +11,13 @@ public partial class Agent
     private readonly IChatClient _chatClient;
     private ChatCompletionOptions _options;
     private IAgentReporter _reporter;
-    private readonly TodoManager _todoManager;
+    private readonly ITodoService _todoService;
     private Dictionary<string, IToolHandler> _toolHandlers;
 
     public Agent(IEnumerable<IToolHandler> handlers,
         IChatClient chatClient,
         IAgentReporter reporter,
-        TodoManager todoManager)
+        ITodoService todoService)
     {
         _messages = new List<ChatMessage>()
         {
@@ -31,7 +31,7 @@ public partial class Agent
         this.handlers = handlers;
         _chatClient = chatClient;
         _reporter = reporter;
-        this._todoManager = todoManager;
+        this._todoService = todoService;
     }
 
     public string Version()
@@ -42,7 +42,6 @@ public partial class Agent
     public async Task<string> Run(string prompt)
     {
         _messages.Add(new UserChatMessage(prompt));
-        var turnsWithoutTodo = 0;
         while (true)
         {
             var result = await _chatClient.CompleteChatAsync(_messages, _options);
@@ -58,7 +57,6 @@ public partial class Agent
                 return result.Value.Content[0].Text;
 
             string output;
-            var todoCalled = false;
             foreach (var toolCall in result.Value.ToolCalls)
             {
                 try
@@ -70,17 +68,15 @@ public partial class Agent
                     output = ex.Message;
                 }
 
-                if (toolCall.FunctionName == "todo" )
-                  todoCalled = true;
+                if (toolCall.FunctionName == "todo")
+                    _todoService.MarkTodoCalled();
 
                 _messages.Add(new ToolChatMessage(toolCall.Id, output));
                 _reporter.ReportMessage(output, true);
             }
 
-            turnsWithoutTodo = todoCalled ? 0 : turnsWithoutTodo++;
-
-            if ( turnsWithoutTodo >= 3 && _todoManager.Todos.Count(t => t.Status == TodoStatus.Todo) > 0)
-              _messages.Add(new AssistantChatMessage("Update your todos"));
+            if (_todoService.ShouldRemindAboutTodos())
+                _messages.Add(new AssistantChatMessage("Update your todos"));
         }
     }
 
