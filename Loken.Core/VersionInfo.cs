@@ -3,9 +3,6 @@
 using System.Diagnostics;
 using System.Reflection;
 
-/// <summary>
-/// Provides version information for the application, including git commit hash.
-/// </summary>
 public static class VersionInfo
 {
     private static readonly string _version;

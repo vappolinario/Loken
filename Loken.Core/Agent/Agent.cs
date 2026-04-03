@@ -32,10 +32,7 @@ public partial class Agent
         _todoService = todoService;
     }
 
-    public string Version()
-    {
-        return VersionInfo.Version;
-    }
+    public string Version() => VersionInfo.Version;
 
     public async Task<string> Run(string prompt)
     {
