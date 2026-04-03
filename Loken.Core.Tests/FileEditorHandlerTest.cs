@@ -362,7 +362,6 @@ public class FileEditorHandlerTest : IDisposable
         }
         catch
         {
-            // ignore cleanup errors
         }
     }
 }

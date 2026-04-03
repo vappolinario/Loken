@@ -222,7 +222,6 @@ public class FileWriterHandlerTest : IDisposable
         }
         catch
         {
-            // ignore cleanup errors
         }
     }
 }

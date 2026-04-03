@@ -339,7 +339,6 @@ public class FileReaderHandlerTest : IDisposable
         }
         catch
         {
-            // ignore cleanup errors
         }
     }
 }
