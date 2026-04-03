@@ -5,9 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddScoped<IChatClient, OpenAiChatClient>();
+builder.Services.AddTransient<IChatClient, OpenAiChatClient>();
 builder.Services.AddSingleton<IAgentReporter, Loken.Cli.ConsoleReporter>();
 builder.Services.AddTransient<Agent>();
+builder.Services.AddSingleton<IAgentFactory, AgentFactory>();
 builder.Services.AddSingleton<IPathResolver, PathResolver>(pr => new PathResolver("."));
 builder.Services.AddTransient<IToolHandler, ShellExecutorHandler>();
 builder.Services.AddTransient<IToolHandler, FileReaderHandler>();
@@ -16,6 +17,7 @@ builder.Services.AddTransient<IToolHandler, FileEditorHandler>();
 builder.Services.AddTransient<TodoManager>();
 builder.Services.AddSingleton<ITodoService, TodoService>();
 builder.Services.AddTransient<IToolHandler, TodoHandler>();
+builder.Services.AddTransient<IToolHandler, SubagentHandler>();
 
 builder.Configuration.Sources.Clear();
 builder.Configuration
@@ -30,6 +32,7 @@ await RunConsoleLoop(host.Services);
 async Task RunConsoleLoop(IServiceProvider services)
 {
     var agent = services.GetRequiredService<Agent>();
+    agent.SetSystemPrompt(Agent.LokenPrompt);
     var reporter = services.GetRequiredService<IAgentReporter>();
     Console.WriteLine($"Loken Version: {agent.Version()}");
 

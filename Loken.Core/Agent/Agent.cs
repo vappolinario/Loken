@@ -19,8 +19,8 @@ public partial class Agent
                  IAgentReporter reporter,
                  ITodoService todoService)
     {
-        _messages = new() { new SystemChatMessage(_systemPrompt) };
 
+        _messages = new List<ChatMessage>();
         _toolHandlers = handlers.ToDictionary(h => h.Name, h => h);
         _handlers = handlers;
         _options = new ChatCompletionOptions();
@@ -83,5 +83,11 @@ public partial class Agent
         _reporter.ReportMessage($"Tool used: {name}", true);
 
         return await handler.ExecuteAsync(input);
+    }
+
+    public void SetSystemPrompt(string prompt)
+    {
+        _messages.Clear();
+        _messages.Add(new SystemChatMessage(prompt));
     }
 }
