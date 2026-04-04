@@ -76,27 +76,11 @@ Once running, you'll be presented with an interactive console prompt (`❯`). Yo
 
 ## Features
 
-### Core Agent Capabilities
-- **Strategic Planning**: Presents battle plans for user approval before execution
-- **Logical Analysis**: Analyzes problems methodically and provides reasoned solutions
-- **Context Awareness**: Maintains conversation context for complex problem-solving
-- **Progress Tracking**: Automatic todo list management for multi-step tasks
-
-### File Operations
-- **File Reading**: Read file contents with configurable character limits
-- **File Writing**: Create and write new files with automatic directory creation
-- **File Editing**: Precise text replacement with exact match verification
-- **Path Security**: Sandboxed file access restricted to working directory
-
-### Shell Execution
-- **Command Execution**: Run bash commands to investigate system state
-- **Security Validation**: Blocks dangerous commands (rm -rf /, sudo, etc.)
-- **Error Handling**: Comprehensive error reporting and validation
-
-### Task Management
-- **Todo System**: Track progress on multi-step tasks with status updates
-- **Automatic Reminders**: Reminds about pending tasks after inactivity
-- **Progress Reporting**: Clear visual indicators for todo/doing/done status
+- Shell execution
+- File operations
+- Todo tracking
+- Subagents
+- Skill system
 
 ## Testing
 
