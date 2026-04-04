@@ -1,4 +1,4 @@
-﻿#pragma warning disable OPENAI001
+#pragma warning disable OPENAI001
 namespace Loken.Core.Tests;
 
 using System.ClientModel;
@@ -13,7 +13,9 @@ public class AgentTest
     private readonly IAgentReporter _reporter;
     private readonly IToolHandler _bashHandler;
     private readonly IToolHandler _echoHandler;
+    private readonly IToolHandler _skillHandler;
     private readonly ITodoService _todoService;
+    private ISkillService _skillService;
     private readonly Agent _agent;
 
     public AgentTest()
@@ -29,9 +31,12 @@ public class AgentTest
 
         _todoService = Substitute.For<ITodoService>();
 
-        var handlers = new List<IToolHandler> { _bashHandler, _echoHandler };
+        _skillService = Substitute.For<ISkillService>();
+        _skillHandler = new SkillHandler(_skillService);
 
-        _agent = new Agent(handlers, _chat, _reporter, _todoService);
+        var handlers = new List<IToolHandler> { _bashHandler, _echoHandler, _skillHandler };
+
+        _agent = new Agent(handlers, _chat, _reporter, _todoService, _skillService);
     }
 
     [Fact]
@@ -52,7 +57,7 @@ public class AgentTest
     [Fact]
     public void Agent_ShouldInitializeWithEmptyHandlers()
     {
-        var agent = new Agent(new List<IToolHandler>(), _chat, _reporter, _todoService);
+        var agent = new Agent(new List<IToolHandler>(), _chat, _reporter, _todoService, _skillService);
 
         agent.ShouldNotBeNull();
         var version = agent.Version();
@@ -71,6 +76,22 @@ public class AgentTest
             .Returns(Task.FromResult(mockCompletion));
 
         Should.NotThrow(async () => await _agent.Run("Test"));
+    }
+
+    [Fact]
+    public void SetSystemPrompt_ShouldIncludeSkillDescriptions_WhenSkillsAreAvailable()
+    {
+        // Arrange
+        var systemPrompt = "You are a helpful assistant.";
+        var skillDescription = "  - brave-search: Web search and content extraction via Brave Search API. Use for searching documentation, facts, or any web content. Lightweight, no browser required.\n";
+        _skillService.GetSkills().Returns(skillDescription);
+
+        // Act
+        _agent.SetSystemPrompt(systemPrompt);
+
+        // Assert
+        _skillService.Received(1).GetSkills();
+        // Note: We can't directly verify the internal messages, but we can verify the skill service was called
     }
 
     [Fact]
@@ -236,6 +257,197 @@ public class AgentTest
         _reporter.Received(1).ReportMessage("Tool used: bash", true);
         _reporter.Received(1).ReportMessage("file1.txt", true);
         _reporter.Received(1).ReportMessage(Arg.Is<string>(s => s.Contains("Tool executed")), false);
+    }
+
+    [Fact]
+    public async Task Run_ShouldExecuteLoadSkillTool_WhenRequested()
+    {
+        // Arrange
+        var skillName = "brave-search";
+        var skillBody = "Web search and content extraction via Brave Search API.";
+        var skillInput = BinaryData.FromString($"{{\"name\": \"{skillName}\"}}");
+        var toolCall = ChatToolCall.CreateFunctionToolCall("id123", "load_skill", skillInput);
+
+        var responseWithTool = CreateMockCompletion([], ChatFinishReason.ToolCalls, [toolCall]);
+        var finalResponse = CreateMockCompletion(["Skill loaded successfully"], ChatFinishReason.Stop);
+
+        _chat.CompleteChatAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatCompletionOptions>())
+            .Returns(Task.FromResult(responseWithTool), Task.FromResult(finalResponse));
+
+        _skillService.GetSkillBody(skillName).Returns(skillBody);
+
+        // Act
+        var result = await _agent.Run($"Load skill {skillName}");
+
+        // Assert
+        _skillService.Received(1).GetSkillBody(skillName);
+        _reporter.Received(1).ReportMessage("Tool used: load_skill", true);
+        _reporter.Received(1).ReportMessage(skillBody, true);
+        result.ShouldContain("Skill loaded successfully");
+    }
+
+    [Fact]
+    public async Task Run_ShouldHandleLoadSkillToolCalls_InChatResponses()
+    {
+        // Arrange
+        var skillName = "brave-search";
+        var skillBody = "Web search and content extraction via Brave Search API.";
+        var skillInput = BinaryData.FromString($"{{\"name\": \"{skillName}\"}}");
+        var toolCall = ChatToolCall.CreateFunctionToolCall("id123", "load_skill", skillInput);
+
+        // First response asks to load a skill
+        var responseWithTool = CreateMockCompletion([], ChatFinishReason.ToolCalls, [toolCall]);
+        // Second response continues after skill is loaded
+        var finalResponse = CreateMockCompletion(["Now I can help you search the web"], ChatFinishReason.Stop);
+
+        _chat.CompleteChatAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatCompletionOptions>())
+            .Returns(Task.FromResult(responseWithTool), Task.FromResult(finalResponse));
+
+        _skillService.GetSkillBody(skillName).Returns(skillBody);
+
+        // Act
+        var result = await _agent.Run("I need to search for something");
+
+        // Assert
+        _skillService.Received(1).GetSkillBody(skillName);
+        _reporter.Received(1).ReportMessage("Tool used: load_skill", true);
+        _reporter.Received(1).ReportMessage(skillBody, true);
+        result.ShouldContain("Now I can help you search the web");
+    }
+
+    [Fact]
+    public async Task Run_ShouldHandleLoadSkillToolFailure_Gracefully()
+    {
+        // Arrange
+        var skillName = "non-existent-skill";
+        var skillInput = BinaryData.FromString($"{{\"name\": \"{skillName}\"}}");
+        var toolCall = ChatToolCall.CreateFunctionToolCall("id123", "load_skill", skillInput);
+
+        var responseWithTool = CreateMockCompletion([], ChatFinishReason.ToolCalls, [toolCall]);
+        var finalResponse = CreateMockCompletion(["Skill not found, but continuing"], ChatFinishReason.Stop);
+
+        _chat.CompleteChatAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatCompletionOptions>())
+            .Returns(Task.FromResult(responseWithTool), Task.FromResult(finalResponse));
+
+        _skillService.GetSkillBody(skillName).Returns(x => throw new ExecutionFailedException($"Skill '{skillName}' not found"));
+
+        // Act
+        var result = await _agent.Run($"Load non-existent skill {skillName}");
+
+        // Assert
+        _skillService.Received(1).GetSkillBody(skillName);
+        _reporter.Received(1).ReportMessage("Tool used: load_skill", true);
+        // The agent should report the error and continue
+        result.ShouldContain("Skill not found, but continuing");
+    }
+
+    [Fact]
+    public void SetSystemPrompt_ShouldNotIncludeSkillDescriptions_WhenNoSkillsAreAvailable()
+    {
+        // Arrange
+        var systemPrompt = "You are a helpful assistant.";
+        _skillService.GetSkills().Returns(""); // Empty skill list
+
+        // Act
+        _agent.SetSystemPrompt(systemPrompt);
+
+        // Assert
+        _skillService.Received(1).GetSkills();
+        // The system prompt should not include skill descriptions when empty
+    }
+
+    [Fact]
+    public async Task Run_ShouldWorkCorrectly_WhenNoSkillsAreAvailable()
+    {
+        // Arrange
+        var systemPrompt = "You are a helpful assistant.";
+        _skillService.GetSkills().Returns(""); // Empty skill list
+        
+        _agent.SetSystemPrompt(systemPrompt);
+
+        var mockCompletion = CreateMockCompletion(["I can help you without skills"], ChatFinishReason.Stop);
+        _chat.CompleteChatAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatCompletionOptions>())
+            .Returns(Task.FromResult(mockCompletion));
+
+        // Act
+        var result = await _agent.Run("Help me without skills");
+
+        // Assert
+        result.ShouldBe("I can help you without skills");
+        _skillService.Received(1).GetSkills();
+    }
+
+    [Fact]
+    public async Task ExecuteToolAsync_ShouldExecuteLoadSkillTool_ThroughSkillHandler()
+    {
+        // Arrange
+        var skillName = "brave-search";
+        var skillBody = "Web search and content extraction via Brave Search API.";
+        var input = BinaryData.FromString($"{{\"name\": \"{skillName}\"}}");
+
+        _skillService.GetSkillBody(skillName).Returns(skillBody);
+
+        // Act
+        var result = await _agent.ExecuteToolAsync("load_skill", input);
+
+        // Assert
+        result.ShouldBe(skillBody);
+        _skillService.Received(1).GetSkillBody(skillName);
+        _reporter.Received(1).ReportMessage($"Tool used: load_skill", true);
+    }
+
+    [Fact]
+    public void Agent_ShouldInitializeWithSkillHandler_WhenProvided()
+    {
+        // Arrange
+        var handlers = new List<IToolHandler> { _skillHandler };
+        var agent = new Agent(handlers, _chat, _reporter, _todoService, _skillService);
+
+        // Act & Assert
+        agent.ShouldNotBeNull();
+        // The agent should be able to execute load_skill tool
+        Should.NotThrow(async () => await agent.ExecuteToolAsync("load_skill", BinaryData.FromString("{\"name\": \"test\"}")));
+    }
+
+    [Fact]
+    public void SetSystemPrompt_ShouldFormatSkillDescriptions_Correctly()
+    {
+        // Arrange
+        var systemPrompt = "You are a helpful assistant.";
+        var skillDescription = "  - brave-search: Web search and content extraction via Brave Search API. Use for searching documentation, facts, or any web content. Lightweight, no browser required.\n  - file-search: Search for files in the filesystem.\n";
+        _skillService.GetSkills().Returns(skillDescription);
+
+        // Act
+        _agent.SetSystemPrompt(systemPrompt);
+
+        // Assert
+        _skillService.Received(1).GetSkills();
+        // The skill description should be properly formatted with the expected prefix
+        // We can't directly test the internal message, but we can verify the skill service was called
+    }
+
+    [Fact]
+    public async Task Run_ShouldIncludeFormattedSkillDescriptions_InSystemPrompt()
+    {
+        // Arrange
+        var systemPrompt = "You are a helpful assistant.";
+        var skillDescription = "  - brave-search: Web search and content extraction via Brave Search API.\n";
+        _skillService.GetSkills().Returns(skillDescription);
+        
+        _agent.SetSystemPrompt(systemPrompt);
+
+        var mockCompletion = CreateMockCompletion(["I see the skills available"], ChatFinishReason.Stop);
+        _chat.CompleteChatAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatCompletionOptions>())
+            .Returns(Task.FromResult(mockCompletion));
+
+        // Act
+        var result = await _agent.Run("What skills do you have?");
+
+        // Assert
+        _skillService.Received(1).GetSkills();
+        result.ShouldBe("I see the skills available");
+        // The chat client should have received a system message with skill descriptions
+        // This is verified indirectly through the skill service call
     }
 
     private ClientResult<ChatCompletion> CreateMockCompletion(

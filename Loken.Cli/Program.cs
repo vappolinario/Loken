@@ -18,6 +18,9 @@ builder.Services.AddTransient<TodoManager>();
 builder.Services.AddSingleton<ITodoService, TodoService>();
 builder.Services.AddTransient<IToolHandler, TodoHandler>();
 builder.Services.AddTransient<IToolHandler, SubagentHandler>();
+builder.Services.AddTransient<SkillLoader>(sl => new SkillLoader(Path.Combine(".", "skills")));
+builder.Services.AddTransient<ISkillService, SkillService>();
+builder.Services.AddTransient<IToolHandler, SkillHandler>();
 
 builder.Configuration.Sources.Clear();
 builder.Configuration
@@ -32,9 +35,11 @@ await RunConsoleLoop(host.Services);
 async Task RunConsoleLoop(IServiceProvider services)
 {
     var agent = services.GetRequiredService<Agent>();
+    var skills = services.GetRequiredService<ISkillService>();
     agent.SetSystemPrompt(Agent.LokenPrompt);
     var reporter = services.GetRequiredService<IAgentReporter>();
     Console.WriteLine($"Loken Version: {agent.Version()}");
+    Console.WriteLine($"Loaded skills: {skills.GetSkills()}");
 
     while (true)
     {

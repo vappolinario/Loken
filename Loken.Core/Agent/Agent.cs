@@ -12,14 +12,15 @@ public partial class Agent
     private readonly ChatCompletionOptions _options;
     private readonly IAgentReporter _reporter;
     private readonly ITodoService _todoService;
+    private readonly ISkillService _skillService;
     private readonly Dictionary<string, IToolHandler> _toolHandlers;
 
     public Agent(IEnumerable<IToolHandler> handlers,
                  IChatClient chatClient,
                  IAgentReporter reporter,
-                 ITodoService todoService)
+                 ITodoService todoService,
+                 ISkillService skillService)
     {
-
         _messages = new List<ChatMessage>();
         _toolHandlers = handlers.ToDictionary(h => h.Name, h => h);
         _handlers = handlers;
@@ -30,6 +31,7 @@ public partial class Agent
         _chatClient = chatClient;
         _reporter = reporter;
         _todoService = todoService;
+        _skillService = skillService;
     }
 
     public string Version() => VersionInfo.Version;
@@ -84,6 +86,11 @@ public partial class Agent
 
     public void SetSystemPrompt(string prompt)
     {
+        var skillDescription = _skillService.GetSkills();
+
+        if (!string.IsNullOrWhiteSpace(skillDescription))
+            prompt += $"\nUse load_skill to access specialized knowledge.\n\nSkills available:\n{skillDescription}";
+
         _messages.Clear();
         _messages.Add(new SystemChatMessage(prompt));
     }
