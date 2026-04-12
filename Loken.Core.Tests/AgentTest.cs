@@ -15,7 +15,8 @@ public class AgentTest
     private readonly IToolHandler _echoHandler;
     private readonly IToolHandler _skillHandler;
     private readonly ITodoService _todoService;
-    private ISkillService _skillService;
+    private readonly ISkillService _skillService;
+    private readonly IContextCompactorService _compactorService;
     private readonly Agent _agent;
 
     public AgentTest()
@@ -34,9 +35,11 @@ public class AgentTest
         _skillService = Substitute.For<ISkillService>();
         _skillHandler = new SkillHandler(_skillService);
 
+        _compactorService = Substitute.For<IContextCompactorService>();
+
         var handlers = new List<IToolHandler> { _bashHandler, _echoHandler, _skillHandler };
 
-        _agent = new Agent(handlers, _chat, _reporter, _todoService, _skillService);
+        _agent = new Agent(handlers, _chat, _reporter, _todoService, _skillService, _compactorService);
     }
 
     [Fact]
@@ -57,7 +60,7 @@ public class AgentTest
     [Fact]
     public void Agent_ShouldInitializeWithEmptyHandlers()
     {
-        var agent = new Agent(new List<IToolHandler>(), _chat, _reporter, _todoService, _skillService);
+        var agent = new Agent(new List<IToolHandler>(), _chat, _reporter, _todoService, _skillService, _compactorService);
 
         agent.ShouldNotBeNull();
         var version = agent.Version();
@@ -374,7 +377,7 @@ public class AgentTest
     public void Agent_ShouldInitializeWithSkillHandler_WhenProvided()
     {
         var handlers = new List<IToolHandler> { _skillHandler };
-        var agent = new Agent(handlers, _chat, _reporter, _todoService, _skillService);
+        var agent = new Agent(handlers, _chat, _reporter, _todoService, _skillService, _compactorService);
 
         agent.ShouldNotBeNull();
         Should.NotThrow(async () => await agent.ExecuteToolAsync("load_skill", BinaryData.FromString("{\"name\": \"test\"}")));

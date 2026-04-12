@@ -21,6 +21,7 @@ builder.Services.AddTransient<IToolHandler, SubagentHandler>();
 builder.Services.AddTransient<SkillLoader>(sl => new SkillLoader(Path.Combine(".", "skills")));
 builder.Services.AddTransient<ISkillService, SkillService>();
 builder.Services.AddTransient<IToolHandler, SkillHandler>();
+builder.Services.AddTransient<IContextCompactorService, ContextCompactorService>();
 
 builder.Configuration.Sources.Clear();
 builder.Configuration

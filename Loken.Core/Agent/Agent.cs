@@ -13,13 +13,15 @@ public partial class Agent
     private readonly IAgentReporter _reporter;
     private readonly ITodoService _todoService;
     private readonly ISkillService _skillService;
+    private readonly IContextCompactorService _compactor;
     private readonly Dictionary<string, IToolHandler> _toolHandlers;
 
     public Agent(IEnumerable<IToolHandler> handlers,
                  IChatClient chatClient,
                  IAgentReporter reporter,
                  ITodoService todoService,
-                 ISkillService skillService)
+                 ISkillService skillService,
+                 IContextCompactorService compactorService)
     {
         _messages = new List<ChatMessage>();
         _toolHandlers = handlers.ToDictionary(h => h.Name, h => h);
@@ -32,6 +34,8 @@ public partial class Agent
         _reporter = reporter;
         _todoService = todoService;
         _skillService = skillService;
+
+        _compactor = compactorService;
     }
 
     public string Version() => VersionInfo.Version;
@@ -41,14 +45,14 @@ public partial class Agent
         _messages.Add(new UserChatMessage(prompt));
         while (true)
         {
+            _compactor.MicroCompact(_messages);
+
             var result = await _chatClient.CompleteChatAsync(_messages, _options);
             var assistantMessage = new AssistantChatMessage(result);
             _messages.Add(assistantMessage);
 
             foreach (var msg in assistantMessage.Content)
-            {
                 _reporter.ReportMessage(msg.Text, false);
-            }
 
             if (result.Value.FinishReason != ChatFinishReason.ToolCalls)
                 return result.Value.Content[0].Text;
@@ -65,7 +69,8 @@ public partial class Agent
                     output = ex.Message;
                 }
 
-                _messages.Add(new ToolChatMessage(toolCall.Id, output));
+                var tm = new ToolChatMessage(toolCall.Id, output);
+                _messages.Add(tm);
                 _reporter.ReportMessage(output, true);
             }
 
