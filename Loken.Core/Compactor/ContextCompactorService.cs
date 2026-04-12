@@ -43,20 +43,65 @@ public class ContextCompactorService : IContextCompactorService
                 while (openBraces > closeBraces && truncated.Length < originalText.Length)
                 {
                     var nextClose = originalText.IndexOf('}', truncated.Length);
-                    if (nextClose > 0 && nextClose - truncated.Length < MIN_CONTENT_LENGTH)
+                    if (nextClose > 0 && nextClose - truncated.Length < MIN_CONTENT_LENGTH && nextClose + 1 <= maxLength)
                     {
+                        // Only extend if it won't exceed maxLength
                         truncated = originalText.Substring(0, nextClose + 1);
                         break;
                     }
                     else
                     {
-                        truncated += "}";
-                        closeBraces++;
+                        // Add a closing brace, but only if it won't exceed maxLength
+                        if (truncated.Length + 1 <= maxLength)
+                        {
+                            truncated += "}";
+                            closeBraces++;
+                        }
+                        else
+                        {
+                            // Can't add closing brace without exceeding maxLength
+                            break;
+                        }
                     }
                 }
 
+                // Only add metadata if it won't make the string longer than maxLength
+                // and if we actually truncated something
                 if (truncated.Length < originalText.Length)
-                    truncated = truncated.TrimEnd('}') + $", \"truncated\": true, \"original_length\": {originalText.Length}}}";
+                {
+                    var metadata = $", \"truncated\": true, \"original_length\": {originalText.Length}}}";
+                    var newLength = truncated.TrimEnd('}').Length + metadata.Length;
+                    
+                    if (newLength <= maxLength)
+                    {
+                        truncated = truncated.TrimEnd('}') + metadata;
+                    }
+                    else
+                    {
+                        // If metadata would make it too long, use simple truncation with "..."
+                        // We need to truncate enough to fit "..."
+                        var availableLength = maxLength - 3;
+                        if (availableLength > 0)
+                        {
+                            // Take substring that fits
+                            truncated = truncated.Substring(0, Math.Min(availableLength, truncated.Length));
+                            
+                            // Try to end at a valid JSON point
+                            var lastValidEnd = FindLastValidJsonEnd(truncated);
+                            if (lastValidEnd > 0)
+                            {
+                                truncated = truncated.Substring(0, lastValidEnd);
+                            }
+                            
+                            truncated += "...";
+                        }
+                        else
+                        {
+                            // If we can't even fit "...", just return empty or minimal
+                            truncated = "...";
+                        }
+                    }
+                }
 
                 return truncated;
             }
@@ -70,6 +115,28 @@ public class ContextCompactorService : IContextCompactorService
             return originalText;
 
         return $"[Tool response truncated. Original length: {originalText.Length} chars] {originalText[..maxLength]}";
+    }
+
+    private int FindLastValidJsonEnd(string jsonFragment)
+    {
+        // Simple heuristic: find the last position where braces are balanced
+        int balance = 0;
+        int lastBalancedPos = -1;
+        
+        for (int i = 0; i < jsonFragment.Length; i++)
+        {
+            char c = jsonFragment[i];
+            if (c == '{' || c == '[')
+                balance++;
+            else if (c == '}' || c == ']')
+                balance--;
+                
+            if (balance == 0)
+                lastBalancedPos = i;
+        }
+        
+        // If we found a balanced position, return it + 1 (since substring is exclusive)
+        return lastBalancedPos >= 0 ? lastBalancedPos + 1 : -1;
     }
 
     private IEnumerable<(int MsgIdx, int ContentIdx)> FindToolResultLocations(IList<ChatMessage> messages)

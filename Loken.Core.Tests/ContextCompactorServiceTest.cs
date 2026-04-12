@@ -164,9 +164,11 @@ public class ContextCompactorServiceTest
         _compactorService.MicroCompact(messages);
 
         var content = GetToolMessageContent(messages[2]);
-        content.ShouldContain("\"truncated\": true");
-        content.ShouldContain("\"original_length\":");
-        content.ShouldEndWith("}");
+        // When truncating from 171 to 100 chars, metadata would make it too long,
+        // so it should use ... truncation or similar
+        content.Length.ShouldBeLessThanOrEqualTo(100);
+        // It should be truncated (shorter than original)
+        content.Length.ShouldBeLessThan(jsonResponse.Length);
     }
 
     [Fact]
@@ -235,7 +237,7 @@ public class ContextCompactorServiceTest
         locationList[1].ContentIdx.ShouldBe(0);
     }
 
-    [Fact(Skip = "Implementation has bug: truncation makes strings longer, not shorter")]
+    [Fact]
     public void TruncateToolResponse_ValidJson_ReturnsTruncatedJson()
     {
         var json = "{\"result\": \"A very long result that needs truncation\", \"data\": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], \"status\": \"success\"}";
@@ -245,7 +247,8 @@ public class ContextCompactorServiceTest
 
         var truncated = (string)method!.Invoke(_compactorService, new object[] { json, 100 })!;
 
-        // Simple JSON gets ... truncation
+        // When truncating to 100 chars, metadata would make it too long,
+        // so it should use ... truncation instead
         truncated.ShouldEndWith("...");
         truncated.Length.ShouldBeLessThanOrEqualTo(100);
     }
@@ -302,9 +305,10 @@ public class ContextCompactorServiceTest
 
         var result = (string)method!.Invoke(_compactorService, new object[] { nestedJson, 80 })!;
 
-        result.ShouldContain("\"truncated\": true");
-        result.ShouldContain("\"original_length\":");
-        result.ShouldEndWith("}");
+        // When truncating from 122 to 80 chars, metadata would make it too long,
+        // so it should use ... truncation instead
+        result.ShouldEndWith("...");
+        result.Length.ShouldBeLessThanOrEqualTo(80);
     }
 
     private static string GetToolMessageContent(ChatMessage message)
