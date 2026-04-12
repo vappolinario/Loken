@@ -142,8 +142,14 @@ public class ContextCompactorService : IContextCompactorService
     private IEnumerable<(int MsgIdx, int ContentIdx)> FindToolResultLocations(IList<ChatMessage> messages)
     {
         for (int m = 0; m < messages.Count; m++)
-            for (int c = 0; c < messages[m].Content.Count; c++)
-                if (messages[m] is ToolChatMessage)
+        {
+            if (messages[m] is ToolChatMessage)
+            {
+                for (int c = 0; c < messages[m].Content.Count; c++)
+                {
                     yield return (m, c);
+                }
+            }
+        }
     }
 }

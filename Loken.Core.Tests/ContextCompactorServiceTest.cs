@@ -86,6 +86,11 @@ public class ContextCompactorServiceTest
             new ToolChatMessage("tool_4", "{\"result\": \"This tool response should also NOT be truncated as it's recent.\"}")
         };
 
+        var originalTool1Content = GetToolMessageContent(messages[2]);
+        var originalTool2Content = GetToolMessageContent(messages[5]);
+        var originalTool3Content = GetToolMessageContent(messages[8]);
+        var originalTool4Content = GetToolMessageContent(messages[11]);
+
         _compactorService.MicroCompact(messages);
 
         var tool1Content = GetToolMessageContent(messages[2]);
@@ -93,13 +98,12 @@ public class ContextCompactorServiceTest
         var tool3Content = GetToolMessageContent(messages[8]);
         var tool4Content = GetToolMessageContent(messages[11]);
 
-        // With 4 tool messages and KEEP_RECENT = 3, only the first should be truncated
-        // tool1Content.ShouldBeTruncated(); // Can't assert this until implementation is fixed
+        tool1Content.ShouldNotBe(originalTool1Content);
+        tool1Content.Length.ShouldBeLessThanOrEqualTo(originalTool1Content.Length);
 
-        // The other 3 should not be truncated (they're in the KEEP_RECENT window)
-        tool2Content.ShouldNotBeNull();
-        tool3Content.ShouldNotBeNull();
-        tool4Content.ShouldNotBeNull();
+        tool2Content.ShouldBe(originalTool2Content);
+        tool3Content.ShouldBe(originalTool3Content);
+        tool4Content.ShouldBe(originalTool4Content);
     }
 
     [Fact]
