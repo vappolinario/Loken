@@ -84,6 +84,8 @@ async Task RunConsoleLoop(IServiceProvider services)
 
         try
         {
+            // Show inline spinner while waiting for assistant response
+            await using var spinner = SpinnerExtensions.ShowAssistantSpinner("Thinking...");
             await agent.Run(input);
         }
         catch (Exception ex)

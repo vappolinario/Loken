@@ -54,6 +54,26 @@ public class SpectreConsoleReporter : IAgentReporter
     }
 
     /// <summary>
+    /// Shows an inline spinner for tool execution.
+    /// </summary>
+    /// <param name="toolName">The name of the tool being executed.</param>
+    /// <returns>A disposable spinner instance.</returns>
+    public SimpleSpinner ShowToolSpinner(string toolName)
+    {
+        return SpinnerExtensions.ShowToolSpinner(toolName);
+    }
+
+    /// <summary>
+    /// Shows an inline spinner for assistant thinking.
+    /// </summary>
+    /// <param name="message">The spinner message.</param>
+    /// <returns>A disposable spinner instance.</returns>
+    public SimpleSpinner ShowAssistantSpinner(string message = "Thinking...")
+    {
+        return SpinnerExtensions.ShowAssistantSpinner(message);
+    }
+
+    /// <summary>
     /// Reports an error message.
     /// </summary>
     /// <param name="message">The error message.</param>
