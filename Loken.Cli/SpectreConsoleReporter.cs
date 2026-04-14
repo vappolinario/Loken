@@ -3,32 +3,17 @@ using Spectre.Console;
 
 namespace Loken.Cli;
 
-/// <summary>
-/// A reporter that uses Spectre.Console for enhanced console output.
-/// Following C# skill principles: null safety, proper async patterns, and clear type usage.
-/// </summary>
 public class SpectreConsoleReporter : IAgentReporter
 {
     private readonly IAnsiConsole _console;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="SpectreConsoleReporter"/> class.
-    /// </summary>
-    /// <param name="console">The console to write to. If null, uses the default console.</param>
     public SpectreConsoleReporter(IAnsiConsole? console = null)
     {
-        // Following C# skill: Use null-coalescing operator for safe defaults
         _console = console ?? AnsiConsole.Console;
     }
 
-    /// <summary>
-    /// Reports a message to the console with appropriate styling.
-    /// </summary>
-    /// <param name="message">The message to report. Handles null gracefully.</param>
-    /// <param name="isTool">Whether this message represents a tool call.</param>
     public void ReportMessage(string? message, bool isTool = false)
     {
-        // Following C# skill: Handle null messages gracefully
         if (string.IsNullOrWhiteSpace(message))
         {
             _console.WriteLine();
@@ -41,10 +26,6 @@ public class SpectreConsoleReporter : IAgentReporter
         _console.MarkupLine($"[{color}]{prefix.EscapeMarkup()}{message.EscapeMarkup()}[/]");
     }
 
-    /// <summary>
-    /// Reports a success message.
-    /// </summary>
-    /// <param name="message">The success message.</param>
     public void ReportSuccess(string? message)
     {
         if (string.IsNullOrWhiteSpace(message))
@@ -53,30 +34,16 @@ public class SpectreConsoleReporter : IAgentReporter
         Theme.DisplaySuccess(message);
     }
 
-    /// <summary>
-    /// Shows an inline spinner for tool execution.
-    /// </summary>
-    /// <param name="toolName">The name of the tool being executed.</param>
-    /// <returns>A disposable spinner instance.</returns>
     public SimpleSpinner ShowToolSpinner(string toolName)
     {
         return SpinnerExtensions.ShowToolSpinner(toolName);
     }
 
-    /// <summary>
-    /// Shows an inline spinner for assistant thinking.
-    /// </summary>
-    /// <param name="message">The spinner message.</param>
-    /// <returns>A disposable spinner instance.</returns>
     public SimpleSpinner ShowAssistantSpinner(string message = "Thinking...")
     {
         return SpinnerExtensions.ShowAssistantSpinner(message);
     }
 
-    /// <summary>
-    /// Reports an error message.
-    /// </summary>
-    /// <param name="message">The error message.</param>
     public void ReportError(string? message)
     {
         if (string.IsNullOrWhiteSpace(message))
@@ -85,10 +52,6 @@ public class SpectreConsoleReporter : IAgentReporter
         Theme.DisplayError(message);
     }
 
-    /// <summary>
-    /// Reports an informational message.
-    /// </summary>
-    /// <param name="message">The informational message.</param>
     public void ReportInfo(string? message)
     {
         if (string.IsNullOrWhiteSpace(message))
@@ -97,10 +60,6 @@ public class SpectreConsoleReporter : IAgentReporter
         Theme.DisplayInfo(message);
     }
 
-    /// <summary>
-    /// Reports a warning message.
-    /// </summary>
-    /// <param name="message">The warning message.</param>
     public void ReportWarning(string? message)
     {
         if (string.IsNullOrWhiteSpace(message))
@@ -109,15 +68,8 @@ public class SpectreConsoleReporter : IAgentReporter
         Theme.DisplayWarning(message);
     }
 
-    /// <summary>
-    /// Creates a progress context for tracking long-running operations.
-    /// Following C# skill: Proper async patterns.
-    /// </summary>
-    /// <param name="taskDescription">Description of the overall task.</param>
-    /// <returns>A disposable progress context.</returns>
     public async Task<IProgressContext> StartProgressAsync(string taskDescription, CancellationToken cancellationToken = default)
     {
-        // Following C# skill: Use proper async patterns, avoid .Result
         return await _console.Progress()
             .AutoClear(false)
             .HideCompleted(false)
@@ -135,16 +87,8 @@ public class SpectreConsoleReporter : IAgentReporter
             });
     }
 
-    /// <summary>
-    /// Displays a table of data.
-    /// </summary>
-    /// <typeparam name="T">The type of data to display.</typeparam>
-    /// <param name="data">The data to display.</param>
-    /// <param name="title">Optional table title.</param>
-    /// <param name="configure">Optional configuration for the table.</param>
     public void DisplayTable<T>(IEnumerable<T> data, string? title = null, Action<Table>? configure = null)
     {
-        // Following C# skill: Use ToList() to avoid multiple enumeration
         var dataList = data?.ToList() ?? new List<T>();
 
         if (!dataList.Any())
@@ -155,14 +99,12 @@ public class SpectreConsoleReporter : IAgentReporter
 
         var table = Theme.CreateTable(title);
 
-        // Auto-detect columns from properties
         var properties = typeof(T).GetProperties();
         foreach (var property in properties)
         {
             table.AddColumn(new TableColumn($"[bold]{property.Name}[/]"));
         }
 
-        // Add rows
         foreach (var item in dataList)
         {
             var values = properties.Select(p =>
@@ -178,13 +120,6 @@ public class SpectreConsoleReporter : IAgentReporter
         _console.Write(table);
     }
 
-    /// <summary>
-    /// Displays key-value pairs in a table format.
-    /// </summary>
-    /// <param name="data">The key-value pairs to display.</param>
-    /// <param name="title">Optional table title.</param>
-    /// <param name="keyColumnName">Name for the key column.</param>
-    /// <param name="valueColumnName">Name for the value column.</param>
     public void DisplayKeyValueTable(
         IEnumerable<KeyValuePair<string, string>> data,
         string? title = null,
@@ -211,15 +146,6 @@ public class SpectreConsoleReporter : IAgentReporter
         _console.Write(table);
     }
 
-    /// <summary>
-    /// Displays a dictionary in a table format.
-    /// </summary>
-    /// <typeparam name="TKey">The type of dictionary keys.</typeparam>
-    /// <typeparam name="TValue">The type of dictionary values.</typeparam>
-    /// <param name="data">The dictionary to display.</param>
-    /// <param name="title">Optional table title.</param>
-    /// <param name="keyColumnName">Name for the key column.</param>
-    /// <param name="valueColumnName">Name for the value column.</param>
     public void DisplayDictionaryTable<TKey, TValue>(
         IDictionary<TKey, TValue> data,
         string? title = null,
@@ -246,12 +172,6 @@ public class SpectreConsoleReporter : IAgentReporter
         _console.Write(table);
     }
 
-    /// <summary>
-    /// Prompts the user for input with validation.
-    /// </summary>
-    /// <param name="prompt">The prompt text.</param>
-    /// <param name="validator">Optional validator function.</param>
-    /// <returns>The user's input.</returns>
     public string Prompt(string prompt, Func<string, ValidationResult>? validator = null)
     {
         var textPrompt = new TextPrompt<string>($"[yellow]{prompt.EscapeMarkup()}:[/]");
@@ -264,14 +184,6 @@ public class SpectreConsoleReporter : IAgentReporter
         return _console.Prompt(textPrompt);
     }
 
-    /// <summary>
-    /// Prompts the user for a selection from a list.
-    /// </summary>
-    /// <typeparam name="T">The type of items to select from.</typeparam>
-    /// <param name="prompt">The prompt text.</param>
-    /// <param name="choices">The available choices.</param>
-    /// <param name="converter">Function to convert items to display strings.</param>
-    /// <returns>The selected item.</returns>
     public T PromptSelection<T>(string prompt, IEnumerable<T> choices, Func<T, string>? converter = null) where T : notnull
    {
         var selectionPrompt = new SelectionPrompt<T>()
@@ -288,44 +200,21 @@ public class SpectreConsoleReporter : IAgentReporter
         return _console.Prompt(selectionPrompt);
     }
 
-    /// <summary>
-    /// Asks the user for confirmation.
-    /// </summary>
-    /// <param name="question">The question to ask.</param>
-    /// <param name="defaultValue">The default value if user presses enter.</param>
-    /// <returns>True if user confirms, false otherwise.</returns>
     public bool Confirm(string question, bool defaultValue = false)
     {
         return _console.Confirm($"[yellow]{question.EscapeMarkup()}[/]", defaultValue);
     }
 
-    /// <summary>
-    /// Displays a status message that updates in place.
-    /// </summary>
-    /// <param name="status">The status message.</param>
-    /// <param name="action">The action to perform while showing status.</param>
     public void Status(string status, Action action)
     {
         Theme.DisplayStatus(status, action);
     }
 
-    /// <summary>
-    /// Displays a status message that updates in place with async support.
-    /// Following C# skill: Proper async patterns.
-    /// </summary>
-    /// <param name="status">The status message.</param>
-    /// <param name="action">The async action to perform.</param>
     public async Task StatusAsync(string status, Func<Task> action)
     {
-        // Following C# skill: Use proper async patterns
         await Theme.DisplayStatusAsync(status, action);
     }
 
-    /// <summary>
-    /// Displays a status message that can be updated dynamically.
-    /// </summary>
-    /// <param name="status">The initial status message.</param>
-    /// <param name="action">The action to perform with status updates.</param>
     public async Task DynamicStatusAsync(string status, Func<StatusContext, Task> action)
     {
         await _console.Status()
@@ -338,10 +227,6 @@ public class SpectreConsoleReporter : IAgentReporter
 
 }
 
-/// <summary>
-/// Wrapper for Spectre.Console progress context.
-/// Following C# skill: Proper disposal patterns.
-/// </summary>
 public class SpectreProgressContext : IProgressContext, IDisposable
 {
     private readonly ProgressContext _context;
@@ -389,10 +274,6 @@ public class SpectreProgressContext : IProgressContext, IDisposable
     }
 }
 
-/// <summary>
-/// Interface for progress contexts.
-/// Following C# skill: Clear interfaces for dependency injection.
-/// </summary>
 public interface IProgressContext : IDisposable
 {
     void Update(double value);
