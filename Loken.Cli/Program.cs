@@ -42,12 +42,8 @@ async Task RunConsoleLoop(IServiceProvider services)
     agent.SetSystemPrompt(Agent.LokenPrompt);
     var reporter = services.GetRequiredService<IAgentReporter>();
 
-    // Display welcome banner
-    AnsiConsole.Write(new FigletText("LOKEN").Color(Theme.PrimaryColor));
-    AnsiConsole.MarkupLine($"[bold {Theme.PrimaryColor}]The Emperor's Truth in Code[/]");
-    AnsiConsole.WriteLine();
+    DisplayBanner();
 
-    // Display version and skills in a panel
     var infoPanel = Theme.CreatePanel(
         $"[bold]Version:[/] {agent.Version()}\n" +
         $"[bold]Loaded Skills:[/] {skills.GetSkills()}",
@@ -58,7 +54,6 @@ async Task RunConsoleLoop(IServiceProvider services)
 
     while (true)
     {
-        // Use Spectre.Console prompt for better UX
         var input = AnsiConsole.Prompt(
             new TextPrompt<string>("[bold yellow]❯[/]")
                 .PromptStyle("yellow")
@@ -75,7 +70,6 @@ async Task RunConsoleLoop(IServiceProvider services)
             break;
         }
 
-        // Handle special commands
         if (input.ToLower() is "help" or "?" or "commands")
         {
             DisplayHelp();
@@ -84,7 +78,6 @@ async Task RunConsoleLoop(IServiceProvider services)
 
         try
         {
-            // Show inline spinner while waiting for assistant response
             await using var spinner = SpinnerExtensions.ShowAssistantSpinner("Thinking...");
             await agent.Run(input);
         }
@@ -92,7 +85,6 @@ async Task RunConsoleLoop(IServiceProvider services)
         {
             AnsiConsole.MarkupLine($"[red]Error: {ex.Message.EscapeMarkup()}[/]");
 
-            // Offer to show full exception details
             if (AnsiConsole.Confirm("[yellow]Show full error details?[/]", false))
             {
                 var exceptionPanel = Theme.CreatePanel(
@@ -108,9 +100,6 @@ async Task RunConsoleLoop(IServiceProvider services)
     }
 }
 
-/// <summary>
-/// Displays help information for available commands.
-/// </summary>
 static void DisplayHelp()
 {
     var helpTable = Theme.CreateTable("Available Commands");
@@ -139,5 +128,23 @@ static void DisplayHelp()
 
     AnsiConsole.MarkupLine($"[{Theme.InfoColor}]The Loken agent can handle various tasks including file operations, shell commands, todo management, and more.[/]");
     AnsiConsole.MarkupLine($"[{Theme.InfoColor}]Type your command naturally and Loken will determine the appropriate action.[/]");
+    AnsiConsole.WriteLine();
+}
+
+static void DisplayBanner()
+{
+    var fontPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "Elite.flf");
+
+    if (!File.Exists(fontPath))
+    {
+        AnsiConsole.Write(new FigletText("LOKEN").Color(Theme.PrimaryColor));
+    }
+    else
+    {
+        var font = FigletFont.Load(fontPath);
+        AnsiConsole.Write(new FigletText(font, "LOKEN").Color(Theme.PrimaryColor));
+    }
+
+    AnsiConsole.MarkupLine($"[bold {Theme.PrimaryColor}]The Emperor's Truth in Code[/]");
     AnsiConsole.WriteLine();
 }
