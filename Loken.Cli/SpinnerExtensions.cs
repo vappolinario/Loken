@@ -24,7 +24,7 @@ public static class SpinnerExtensions
         catch (Exception ex)
         {
             spinnerInstance.UpdateMessage($"[red]Error: {ex.Message.EscapeMarkup()}[/]");
-            await Task.Delay(1000); // Show error briefly
+            await Task.Delay(1000);
             throw;
         }
     }
@@ -47,7 +47,7 @@ public static class SpinnerExtensions
         catch (Exception ex)
         {
             spinnerInstance.UpdateMessage($"[red]Error: {ex.Message.EscapeMarkup()}[/]");
-            await Task.Delay(1000); // Show error briefly
+            await Task.Delay(1000);
             throw;
         }
     }
