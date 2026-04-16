@@ -4,43 +4,13 @@ using Loken.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Spectre.Console;
 
-HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddTransient<IChatClient, OpenAiChatClient>();
-builder.Services.AddSingleton<IAgentReporter, SpectreConsoleReporter>();
-builder.Services.AddTransient<Agent>();
-builder.Services.AddSingleton<IAgentFactory, AgentFactory>();
-builder.Services.AddSingleton<IPathResolver, PathResolver>(_ => new PathResolver("."));
-builder.Services.AddTransient<IToolHandler, ShellExecutorHandler>();
-builder.Services.AddTransient<IToolHandler, FileReaderHandler>();
-builder.Services.AddTransient<IToolHandler, FileWriterHandler>();
-builder.Services.AddTransient<IToolHandler, FileEditorHandler>();
-builder.Services.AddTransient<TodoManager>();
-builder.Services.AddSingleton<ITodoService, TodoService>();
-builder.Services.AddTransient<IToolHandler, TodoHandler>();
-builder.Services.AddTransient<IToolHandler, SubagentHandler>();
-builder.Services.AddTransient(sp =>
-{
-  var options = sp.GetRequiredService<IOptions<SkillOptions>>();
-  var skillsPath = options.Value.SkillsPath;
+HostApplicationBuilder builder = AddServices(args);
 
-  if (string.IsNullOrWhiteSpace(skillsPath))
-    skillsPath = Path.Combine(".", "Assets", "skills");
-
-  return new SkillLoader(skillsPath);
-});
-builder.Services.AddTransient<ISkillService, SkillService>();
-builder.Services.AddTransient<IToolHandler, SkillHandler>();
-builder.Services.AddTransient<IContextCompactorService, ContextCompactorService>();
-
-builder.Configuration.Sources.Clear();
-builder.Configuration
-  .SetBasePath(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location) ?? Directory.GetCurrentDirectory())
-  .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-builder.Services.Configure<AiOptions>(builder.Configuration.GetSection("AI"));
-builder.Services.Configure<SkillOptions>(builder.Configuration.GetSection("Skills"));
+ReadConfiguration(builder);
 
 using IHost host = builder.Build();
 
@@ -55,13 +25,7 @@ static async Task RunConsoleLoop(IServiceProvider services)
 
   DisplayBanner();
 
-  var infoPanel = Theme.CreatePanel(
-      $"[bold]Version:[/] {agent.Version()}\n" +
-      $"[bold]Loaded Skills:[/] {skills.GetSkills()}",
-      "System Status");
-
-  AnsiConsole.Write(infoPanel);
-  AnsiConsole.WriteLine();
+  DisplayInfoPanel(agent, skills);
 
   while (true)
   {
@@ -94,21 +58,23 @@ static async Task RunConsoleLoop(IServiceProvider services)
     }
     catch (Exception ex)
     {
-      AnsiConsole.MarkupLine($"[red]Error: {ex.Message.EscapeMarkup()}[/]");
-
-      if (AnsiConsole.Confirm("[yellow]Show full error details?[/]", false))
-      {
-        var exceptionPanel = Theme.CreatePanel(
-            ex.ToString(),
-            "Exception Details",
-            Theme.ErrorColor
-        );
-        AnsiConsole.Write(exceptionPanel);
-      }
+      HandleError(ex);
     }
 
     AnsiConsole.WriteLine();
   }
+
+}
+
+static void DisplayInfoPanel(Agent agent, ISkillService skills)
+{
+  var infoPanel = Theme.CreatePanel(
+      $"[bold]Version:[/] {agent.Version()}\n" +
+      $"[bold]Loaded Skills:[/] {skills.GetSkills()}",
+      "System Status");
+
+  AnsiConsole.Write(infoPanel);
+  AnsiConsole.WriteLine();
 }
 
 static void DisplayHelp()
@@ -158,4 +124,68 @@ static void DisplayBanner()
 
   AnsiConsole.MarkupLine($"[bold {Theme.PrimaryColor}]The Emperor's Truth in Code[/]");
   AnsiConsole.WriteLine();
+}
+
+static HostApplicationBuilder AddServices(string[] args)
+{
+  HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
+  builder.Services.AddTransient<IChatClient, OpenAiChatClient>();
+  builder.Services.AddSingleton<IAgentReporter, SpectreConsoleReporter>();
+  builder.Services.AddTransient<Agent>();
+  builder.Services.AddSingleton<IAgentFactory, AgentFactory>();
+  builder.Services.AddSingleton<IPathResolver, PathResolver>(_ => new PathResolver("."));
+  builder.Services.AddTransient<IToolHandler, ShellExecutorHandler>();
+  builder.Services.AddTransient<IToolHandler, FileReaderHandler>();
+  builder.Services.AddTransient<IToolHandler, FileWriterHandler>();
+  builder.Services.AddTransient<IToolHandler, FileEditorHandler>();
+  builder.Services.AddTransient<IToolHandler, HtmlFetcherHandler>();
+  builder.Services.AddHttpClient();
+  builder.Services.AddTransient<TodoManager>();
+  builder.Services.AddSingleton<ITodoService, TodoService>();
+  builder.Services.AddTransient<IToolHandler, TodoHandler>();
+  builder.Services.AddTransient<IToolHandler, SubagentHandler>();
+  builder.Services.AddTransient(sp =>
+  {
+    var options = sp.GetRequiredService<IOptions<SkillOptions>>();
+    var skillsPath = options.Value.SkillsPath;
+
+    if (string.IsNullOrWhiteSpace(skillsPath))
+      skillsPath = Path.Combine(".", "Assets", "skills");
+
+    return new SkillLoader(skillsPath);
+  });
+  builder.Services.AddTransient<ISkillService, SkillService>();
+  builder.Services.AddTransient<IToolHandler, SkillHandler>();
+  builder.Services.AddTransient<IContextCompactorService, ContextCompactorService>();
+
+  builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.None);
+  builder.Logging.AddFilter("System.Net.Http.HttpClient.Default.LogicalHandler", LogLevel.None);
+  builder.Logging.AddFilter("System.Net.Http.HttpClient.Default.ClientHandler", LogLevel.None);
+
+  return builder;
+}
+
+static void ReadConfiguration(HostApplicationBuilder builder)
+{
+  builder.Configuration.Sources.Clear();
+  builder.Configuration
+    .SetBasePath(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location) ?? Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+  builder.Services.Configure<AiOptions>(builder.Configuration.GetSection("AI"));
+  builder.Services.Configure<SkillOptions>(builder.Configuration.GetSection("Skills"));
+}
+
+static void HandleError(Exception ex)
+{
+  AnsiConsole.MarkupLine($"[red]Error: {ex.Message.EscapeMarkup()}[/]");
+
+  if (AnsiConsole.Confirm("[yellow]Show full error details?[/]", false))
+  {
+    var exceptionPanel = Theme.CreatePanel(
+        ex.ToString(),
+        "Exception Details",
+        Theme.ErrorColor
+    );
+    AnsiConsole.Write(exceptionPanel);
+  }
 }
