@@ -4,6 +4,7 @@ using Loken.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Spectre.Console;
 
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
@@ -20,7 +21,16 @@ builder.Services.AddTransient<TodoManager>();
 builder.Services.AddSingleton<ITodoService, TodoService>();
 builder.Services.AddTransient<IToolHandler, TodoHandler>();
 builder.Services.AddTransient<IToolHandler, SubagentHandler>();
-builder.Services.AddTransient<SkillLoader>(sl => new SkillLoader(Path.Combine(".", "skills")));
+builder.Services.AddTransient(sp =>
+{
+    var options = sp.GetRequiredService<IOptions<SkillOptions>>();
+    var skillsPath = options.Value.SkillsPath;
+
+    if (string.IsNullOrWhiteSpace(skillsPath))
+        skillsPath = Path.Combine(".", "Assets", "skills");
+
+    return new SkillLoader(skillsPath);
+});
 builder.Services.AddTransient<ISkillService, SkillService>();
 builder.Services.AddTransient<IToolHandler, SkillHandler>();
 builder.Services.AddTransient<IContextCompactorService, ContextCompactorService>();
@@ -30,12 +40,13 @@ builder.Configuration
   .SetBasePath(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location) ?? Directory.GetCurrentDirectory())
   .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection("AI"));
+builder.Services.Configure<SkillOptions>(builder.Configuration.GetSection("Skills"));
 
 using IHost host = builder.Build();
 
 await RunConsoleLoop(host.Services);
 
-async Task RunConsoleLoop(IServiceProvider services)
+static async Task RunConsoleLoop(IServiceProvider services)
 {
     var agent = services.GetRequiredService<Agent>();
     var skills = services.GetRequiredService<ISkillService>();
