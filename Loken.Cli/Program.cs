@@ -112,18 +112,13 @@ static void DisplayHelp()
 
 static void DisplayBanner()
 {
+  var assembly = Assembly.GetExecutingAssembly();
+  using var stream = assembly.GetManifestResourceStream("Loken.Cli.Assets.Fonts.Elite.flf")
+                     ?? throw new Exception("Fonte não encontrada nos recursos internos.");
+  var font = FigletFont.Load(stream);
   var fontPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "Elite.flf");
 
-  if (!File.Exists(fontPath))
-  {
-    AnsiConsole.Write(new FigletText("LOKEN").Color(Theme.PrimaryColor));
-  }
-  else
-  {
-    var font = FigletFont.Load(fontPath);
-    AnsiConsole.Write(new FigletText(font, "LOKEN").Color(Theme.PrimaryColor));
-  }
-
+  AnsiConsole.Write(new FigletText(font, "LOKEN").Color(Theme.PrimaryColor));
   AnsiConsole.MarkupLine($"[bold {Theme.PrimaryColor}]The Emperor's Truth in Code[/]");
   AnsiConsole.WriteLine();
 }
