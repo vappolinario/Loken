@@ -79,12 +79,6 @@ public class ToolServiceTest
         exception.ParamName.ShouldBe("handlers");
     }
 
-    /// <summary>
-    /// A minimal stub implementing <see cref="IToolHandler"/> for test purposes.
-    /// Only <see cref="Name"/> and <see cref="Description"/> are populated,
-    /// as <see cref="ToolService"/> does not invoke <see cref="ExecuteAsync"/>
-    /// or read <see cref="Parameters"/>.
-    /// </summary>
     private sealed class StubHandler : IToolHandler
     {
         public string Name { get; }
