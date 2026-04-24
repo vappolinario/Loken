@@ -172,8 +172,24 @@ static HostApplicationBuilder AddServices(string[] args)
 static void ReadConfiguration(HostApplicationBuilder builder)
 {
   builder.Configuration.Sources.Clear();
+
+  string configDirectory;
+#if DEBUG
+  configDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location) ?? Directory.GetCurrentDirectory();
+#else
+    configDirectory = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "loken"
+    );
+
+    if (!Directory.Exists(configDirectory))
+    {
+        Directory.CreateDirectory(configDirectory);
+    }
+#endif
+
   builder.Configuration
-    .SetBasePath(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location) ?? Directory.GetCurrentDirectory())
+    .SetBasePath(configDirectory)
     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
   builder.Services.Configure<AiOptions>(builder.Configuration.GetSection("AI"));
   builder.Services.Configure<SkillOptions>(builder.Configuration.GetSection("Skills"));
