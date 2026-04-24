@@ -26,7 +26,7 @@ static async Task RunConsoleLoop(IServiceProvider services)
 
   DisplayBanner();
 
-  DisplayInfoPanel(agent, skills, tools);
+  AnsiConsole.MarkupLine($"[bold {Theme.PrimaryColor}]Type /help if needed[/]");
 
   while (true)
   {
@@ -40,15 +40,21 @@ static async Task RunConsoleLoop(IServiceProvider services)
     if (string.IsNullOrWhiteSpace(input))
       continue;
 
-    if (input.ToLower() is "exit" or "quit" or "q")
+    if (input.ToLower() is "/exit" or "/quit" or "/q" or "exit" or "quit" or "q")
     {
       AnsiConsole.MarkupLine("[grey]The Emperor protects. Until next time.[/]");
       break;
     }
 
-    if (input.ToLower() is "help" or "?" or "commands")
+    if (input.ToLower() is "/help" or "/?" or "/commands" or "help" or "?" or "commands")
     {
       DisplayHelp();
+      continue;
+    }
+
+    if (input.ToLower() is "/info")
+    {
+      DisplayInfoPanel(agent, skills, tools);
       continue;
     }
 
@@ -88,14 +94,19 @@ static void DisplayHelp()
   helpTable.AddColumn("Aliases");
 
   helpTable.AddRow(
-      "[bold]help[/]",
+      "[bold]/help[/]",
       "Show this help message",
-      "?, commands");
+      "/?, /commands, help, ?, commands");
 
   helpTable.AddRow(
-      "[bold]exit[/]",
+      "[bold]/info[/]",
+      "Show system status (version, skills, tools)",
+      "—");
+
+  helpTable.AddRow(
+      "[bold]/exit[/]",
       "Exit the application",
-      "quit, q");
+      "/quit, /q, exit, quit, q");
 
   helpTable.AddRow(
       "[bold]any other text[/]",
