@@ -20,12 +20,13 @@ static async Task RunConsoleLoop(IServiceProvider services)
 {
   var agent = services.GetRequiredService<Agent>();
   var skills = services.GetRequiredService<ISkillService>();
+  var tools = services.GetRequiredService<IToolService>();
   agent.SetSystemPrompt(Agent.LokenPrompt);
   var reporter = services.GetRequiredService<IAgentReporter>();
 
   DisplayBanner();
 
-  DisplayInfoPanel(agent, skills);
+  DisplayInfoPanel(agent, skills, tools);
 
   while (true)
   {
@@ -66,11 +67,12 @@ static async Task RunConsoleLoop(IServiceProvider services)
 
 }
 
-static void DisplayInfoPanel(Agent agent, ISkillService skills)
+static void DisplayInfoPanel(Agent agent, ISkillService skills, IToolService tools)
 {
   var infoPanel = Theme.CreatePanel(
       $"[bold]Version:[/] {agent.Version()}\n" +
-      $"[bold]Loaded Skills:[/] {skills.GetSkills()}",
+      $"[bold]Loaded Skills:[/] {skills.GetSkills()}\n" +
+      $"[bold]Available Tools:[/]\n{tools.GetTools()}",
       "System Status");
 
   AnsiConsole.Write(infoPanel);
@@ -157,6 +159,8 @@ static HostApplicationBuilder AddServices(string[] args)
   builder.Services.AddTransient<ISkillService, SkillService>();
   builder.Services.AddTransient<IToolHandler, SkillHandler>();
   builder.Services.AddTransient<IContextCompactorService, ContextCompactorService>();
+
+  builder.Services.AddSingleton<IToolService, ToolService>();
 
   builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.None);
   builder.Logging.AddFilter("System.Net.Http.HttpClient.Default.LogicalHandler", LogLevel.None);
