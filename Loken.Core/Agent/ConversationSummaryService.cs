@@ -1,7 +1,6 @@
 namespace Loken.Core;
 
 using System.Text;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Loken.Core.Options;
 using OpenAI.Chat;
@@ -9,16 +8,16 @@ using OpenAI.Chat;
 public class ConversationSummaryService
 {
     private readonly IOptions<ConversationSummaryOptions> _options;
-    private readonly ILogger<ConversationSummaryService> _logger;
+    private readonly IAgentReporter _reporter;
     private readonly IChatClient _chatClient;
 
     public ConversationSummaryService(
         IOptions<ConversationSummaryOptions> options,
-        ILogger<ConversationSummaryService> logger,
+        IAgentReporter reporter,
         IChatClient chatClient)
     {
         _options = options;
-        _logger = logger;
+        _reporter = reporter;
         _chatClient = chatClient;
     }
 
@@ -26,7 +25,7 @@ public class ConversationSummaryService
     {
         if (messages.Count < 2)
         {
-            _logger.LogInformation("Conversation too short to summarize (only {Count} messages). Skipping.", messages.Count);
+            _reporter.ReportMessage($"Conversation too short to summarize (only {messages.Count} messages). Skipping.", false);
             return null;
         }
 
@@ -36,13 +35,13 @@ public class ConversationSummaryService
 
         try
         {
-            _logger.LogInformation("Generating conversation summary via LLM...");
+            _reporter.ReportMessage("Generating conversation summary via LLM...", false);
             markdown = await GenerateLlmSummaryAsync(messages, modelName);
-            _logger.LogInformation("LLM summary generated successfully.");
+            _reporter.ReportMessage("LLM summary generated successfully.", false);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "LLM summary generation failed. Falling back to mechanical summary.");
+            _reporter.ReportMessage($"Warning: {ex.Message} - LLM summary generation failed. Falling back to mechanical summary.", false);
             title = GenerateTitle(messages);
             markdown = BuildSummaryMarkdown(messages, title, modelName);
             goto WriteFile;
@@ -50,13 +49,13 @@ public class ConversationSummaryService
 
         try
         {
-            _logger.LogInformation("Generating title from summary...");
+            _reporter.ReportMessage("Generating title from summary...", false);
             title = await GenerateLlmTitleAsync(markdown, modelName);
-            _logger.LogInformation("LLM title generated: {Title}", title);
+            _reporter.ReportMessage($"LLM title generated: {title}", false);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "LLM title generation failed. Falling back to mechanical title.");
+            _reporter.ReportMessage($"Warning: {ex.Message} - LLM title generation failed. Falling back to mechanical title.", false);
             title = GenerateTitle(messages);
         }
 
@@ -66,7 +65,7 @@ public class ConversationSummaryService
 
         await File.WriteAllTextAsync(filePath, markdown, Encoding.UTF8);
 
-        _logger.LogInformation("Conversation summary saved to {Path}", filePath);
+        _reporter.ReportMessage($"Conversation summary saved to {filePath}", false);
         return filePath;
     }
 
