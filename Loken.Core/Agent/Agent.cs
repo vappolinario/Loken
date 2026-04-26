@@ -89,6 +89,11 @@ public partial class Agent
         return await handler.ExecuteAsync(input);
     }
 
+    /// <summary>
+    /// Returns a read-only copy of the conversation messages for summary generation.
+    /// </summary>
+    public IReadOnlyList<ChatMessage> GetMessages() => _messages.AsReadOnly();
+
     public void SetSystemPrompt(string prompt)
     {
         var skillDescription = _skillService.GetSkills();

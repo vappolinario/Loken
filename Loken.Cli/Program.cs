@@ -1,6 +1,7 @@
 using System.Reflection;
 using Loken.Cli;
 using Loken.Core;
+using Loken.Core.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -42,6 +43,7 @@ static async Task RunConsoleLoop(IServiceProvider services)
 
     if (input.ToLower() is "/exit" or "/quit" or "/q" or "exit" or "quit" or "q")
     {
+      await HandleExitAsync(services, agent);
       AnsiConsole.MarkupLine("[grey]The Emperor protects. Until next time.[/]");
       break;
     }
@@ -71,6 +73,44 @@ static async Task RunConsoleLoop(IServiceProvider services)
     AnsiConsole.WriteLine();
   }
 
+}
+
+/// <summary>
+/// Handles the exit procedure: optionally generates a conversation summary.
+/// </summary>
+static async Task HandleExitAsync(IServiceProvider services, Agent agent)
+{
+  try
+  {
+    var summaryService = services.GetRequiredService<ConversationSummaryService>();
+
+    bool shouldGenerate;
+
+    if (summaryService.ShouldPrompt)
+    {
+      // Ask the user
+      shouldGenerate = AnsiConsole.Confirm("[yellow]Generate a conversation summary for future reference?[/]", true);
+    }
+    else
+    {
+      shouldGenerate = summaryService.ShouldGenerate();
+    }
+
+    if (shouldGenerate)
+    {
+      var messages = agent.GetMessages();
+      var modelName = services.GetRequiredService<IOptions<AiOptions>>().Value.Model;
+      var filePath = await summaryService.GenerateSummaryAsync(messages, modelName);
+      if (filePath != null)
+      {
+        AnsiConsole.MarkupLine($"[green]Conversation summary saved:[/] [cyan]{filePath}[/]");
+      }
+    }
+  }
+  catch (Exception ex)
+  {
+    AnsiConsole.MarkupLine($"[yellow]Failed to generate conversation summary: {ex.Message}[/]");
+  }
 }
 
 static void DisplayInfoPanel(Agent agent, ISkillService skills, IToolService tools)
@@ -199,6 +239,8 @@ static void ReadConfiguration(HostApplicationBuilder builder)
     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
   builder.Services.Configure<AiOptions>(builder.Configuration.GetSection("AI"));
   builder.Services.Configure<SkillOptions>(builder.Configuration.GetSection("Skills"));
+  builder.Services.Configure<ConversationSummaryOptions>(builder.Configuration.GetSection("ConversationSummary"));
+  builder.Services.AddTransient<ConversationSummaryService>();
 }
 
 static void HandleError(Exception ex)
