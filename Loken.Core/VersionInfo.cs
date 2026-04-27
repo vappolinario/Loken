@@ -5,7 +5,6 @@ using System.Linq;
 
 public static class VersionInfo
 {
-	/// <summary>Base semver for Loken. The commit hash from the time of publishing is appended.</summary>
 	private const string BaseVersion = "0.1";
 
 	static VersionInfo()
@@ -18,17 +17,8 @@ public static class VersionInfo
 			: $"{BaseVersion}-{commit}";
 	}
 
-	/// <summary>The version string, e.g. "0.1-a1b2c3d" or "0.1-unknown".</summary>
 	public static string Version { get; }
 
-	/// <summary>Resolves the commit hash from assembly attributes.</summary>
-	/// <remarks>
-	/// Priority:
-	/// 1. <c>AssemblyMetadata("GitCommitHash")</c> — set explicitly via MSBuild target or <c>build.sh</c>.
-	/// 2. <c>AssemblyInformationalVersion</c> — the .NET SDK automatically appends
-	///    the source revision (full hash) after a '+' when building from a git repo.
-	/// 3. <c>null</c> — when no source revision information is available.
-	/// </remarks>
 	private static string? GetCommitHash(Assembly assembly)
 	{
 		// 1. Check for explicit AssemblyMetadata("GitCommitHash").
