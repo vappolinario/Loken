@@ -29,6 +29,7 @@ static async Task RunConsoleLoop(IServiceProvider services)
       : Agent.LokenPrompt;
   agent.SetSystemPrompt(systemPrompt);
   var reporter = services.GetRequiredService<IAgentReporter>();
+  var editorService = services.GetRequiredService<IEditorService>();
 
   DisplayBanner();
 
@@ -76,6 +77,22 @@ static async Task RunConsoleLoop(IServiceProvider services)
     {
       DisplayInfoPanel(agent, skills, tools);
       continue;
+    }
+
+    if (input.ToLower() is "/editor" or "/e")
+    {
+      AnsiConsole.MarkupLine($"[bold {Theme.PrimaryColor}]Opening editor...[/]");
+
+      var editorContent = await editorService.EditAsync();
+
+      if (string.IsNullOrWhiteSpace(editorContent))
+      {
+        AnsiConsole.MarkupLine("[yellow]No content captured from editor. Skipping.[/]");
+        continue;
+      }
+
+      input = editorContent;
+      // Fall through to send to agent below
     }
 
     try
@@ -167,6 +184,11 @@ static void DisplayHelp()
       "—");
 
   helpTable.AddRow(
+      "[bold]/editor[/]",
+      "Open $EDITOR to compose a long prompt",
+      "/e");
+
+  helpTable.AddRow(
       "[bold]/exit[/]",
       "Exit the application",
       "/quit, /q, exit, quit, q");
@@ -232,6 +254,8 @@ static HostApplicationBuilder AddServices(string[] args)
   builder.Services.AddTransient<IToolHandler, AgentInstructionsHandler>();
 
   builder.Services.AddSingleton<IToolService, ToolService>();
+
+  builder.Services.AddTransient<IEditorService, SystemEditorService>();
 
   builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.None);
   builder.Logging.AddFilter("System.Net.Http.HttpClient.Default.LogicalHandler", LogLevel.None);
