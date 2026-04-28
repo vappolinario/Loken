@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="OpenAI" Version="2.9.1" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+    <PackageReference Include="YamlDotNet" Version="17.0.1" />
   </ItemGroup>
 
   <!-- MSBuild target to get git commit hash and embed it as assembly metadata -->

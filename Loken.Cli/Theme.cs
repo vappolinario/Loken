@@ -1,22 +1,72 @@
-﻿using Spectre.Console;
+using Loken.Core.Options;
+using Loken.Core.Services;
+using Spectre.Console;
 
 namespace Loken.Cli;
 
 public static class Theme
 {
-    public static Color PrimaryColor => Color.Blue;
+    public static Color PrimaryColor { get; private set; } = Color.Blue;
+    public static Color SecondaryColor { get; private set; } = Color.Yellow;
+    public static Color SuccessColor { get; private set; } = Color.Green;
+    public static Color ErrorColor { get; private set; } = Color.Red;
+    public static Color WarningColor { get; private set; } = Color.Orange3;
+    public static Color InfoColor { get; private set; } = Color.Cyan1;
+    public static Color MutedColor { get; private set; } = Color.Grey;
 
-    public static Color SecondaryColor => Color.Yellow;
+    public static void LoadFromFile(string path)
+    {
+        var loader = new ThemeLoader();
+        var options = loader.Load(path);
 
-    public static Color SuccessColor => Color.Green;
+        PrimaryColor = ParseColor(options.Primary, Color.Blue);
+        SecondaryColor = ParseColor(options.Secondary, Color.Yellow);
+        SuccessColor = ParseColor(options.Success, Color.Green);
+        ErrorColor = ParseColor(options.Error, Color.Red);
+        WarningColor = ParseColor(options.Warning, Color.Orange3);
+        InfoColor = ParseColor(options.Info, Color.Cyan1);
+        MutedColor = ParseColor(options.Muted, Color.Grey);
+    }
 
-    public static Color ErrorColor => Color.Red;
+    public static void ApplyOptions(ThemeOptions options)
+    {
+        PrimaryColor = ParseColor(options.Primary, Color.Blue);
+        SecondaryColor = ParseColor(options.Secondary, Color.Yellow);
+        SuccessColor = ParseColor(options.Success, Color.Green);
+        ErrorColor = ParseColor(options.Error, Color.Red);
+        WarningColor = ParseColor(options.Warning, Color.Orange3);
+        InfoColor = ParseColor(options.Info, Color.Cyan1);
+        MutedColor = ParseColor(options.Muted, Color.Grey);
+    }
 
-    public static Color WarningColor => Color.Orange3;
+    private static Color ParseColor(string hex, Color fallback)
+    {
+        if (string.IsNullOrWhiteSpace(hex))
+            return fallback;
 
-    public static Color InfoColor => Color.Cyan1;
+        try
+        {
+            return FromHex(hex);
+        }
+        catch
+        {
+            return fallback;
+        }
+    }
 
-    public static Color MutedColor => Color.Grey;
+    private static Color FromHex(string hex)
+    {
+        hex = hex.TrimStart('#');
+
+        if (hex.Length != 6)
+            throw new ArgumentException($"Invalid hex color: #{hex}");
+
+        var r = byte.Parse(hex[..2], System.Globalization.NumberStyles.HexNumber);
+        var g = byte.Parse(hex[2..4], System.Globalization.NumberStyles.HexNumber);
+        var b = byte.Parse(hex[4..6], System.Globalization.NumberStyles.HexNumber);
+
+        return new Color(r, g, b);
+    }
 
     public static Panel CreatePanel(string content, string title, Color? borderColor = null)
     {

@@ -1,0 +1,14 @@
+﻿# Loken Theme Configuration
+# Override the terminal palette by defining true-color hex values.
+# Tools like wallust can generate this file from your terminal palette.
+#
+# Each value is a hex color code (e.g., "#3B82F6").
+# Leave empty or omit to use the default Spectre.Console colors.
+
+primary: "#0000FF"
+secondary: "#FFFF00"
+success: "#00FF00"
+error: "#FF0000"
+warning: "#FFA500"
+info: "#00FFFF"
+muted: "#808080"

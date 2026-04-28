@@ -13,6 +13,13 @@ HostApplicationBuilder builder = AddServices(args);
 
 ReadConfiguration(builder);
 
+var configDir = builder.Configuration.GetValue<string>("ConfigDirectory")
+    ?? Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location)
+    ?? Directory.GetCurrentDirectory();
+
+var themePath = Path.Combine(configDir, "theme.yaml");
+Theme.LoadFromFile(themePath);
+
 using IHost host = builder.Build();
 
 await RunConsoleLoop(host.Services);
