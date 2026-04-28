@@ -60,7 +60,8 @@ public class ConversationSummaryService
         }
 
     WriteFile:
-        var fileName = $"{DateTime.Now:yyyyMMdd}-{SanitizeFileName(title)}.md";
+        var cwd = new DirectoryInfo(Directory.GetCurrentDirectory()).Name;
+        var fileName = $"{DateTime.Now:yyyyMMdd}-{SanitizeFileName(cwd)}-{SanitizeFileName(title)}.md";
         var filePath = Path.Combine(directory, fileName);
 
         await File.WriteAllTextAsync(filePath, markdown, Encoding.UTF8);
