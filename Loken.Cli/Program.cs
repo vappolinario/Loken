@@ -22,7 +22,12 @@ static async Task RunConsoleLoop(IServiceProvider services)
   var agent = services.GetRequiredService<Agent>();
   var skills = services.GetRequiredService<ISkillService>();
   var tools = services.GetRequiredService<IToolService>();
-  agent.SetSystemPrompt(Agent.LokenPrompt);
+  var instructionsService = services.GetRequiredService<IAgentInstructionsService>();
+  var instructions = instructionsService.LoadInstructions();
+  var systemPrompt = instructions is not null
+      ? $"{Agent.LokenPrompt}\n\n# Project Instructions\n\n{instructions}"
+      : Agent.LokenPrompt;
+  agent.SetSystemPrompt(systemPrompt);
   var reporter = services.GetRequiredService<IAgentReporter>();
 
   DisplayBanner();
@@ -205,6 +210,8 @@ static HostApplicationBuilder AddServices(string[] args)
   builder.Services.AddTransient<ISkillService, SkillService>();
   builder.Services.AddTransient<IToolHandler, SkillHandler>();
   builder.Services.AddTransient<IContextCompactorService, ContextCompactorService>();
+  builder.Services.AddSingleton<IAgentInstructionsService, AgentInstructionsService>();
+  builder.Services.AddTransient<IToolHandler, AgentInstructionsHandler>();
 
   builder.Services.AddSingleton<IToolService, ToolService>();
 
