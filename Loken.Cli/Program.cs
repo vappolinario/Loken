@@ -59,6 +59,19 @@ static async Task RunConsoleLoop(IServiceProvider services)
       continue;
     }
 
+    if (input.ToLower() is "/agents")
+    {
+      var freshInstructions = instructionsService.LoadInstructions();
+      var freshPrompt = freshInstructions is not null
+          ? $"{Agent.LokenPrompt}\n\n# Project Instructions\n\n{freshInstructions}"
+          : Agent.LokenPrompt;
+      agent.SetSystemPrompt(freshPrompt);
+      AnsiConsole.MarkupLine(freshInstructions is not null
+          ? $"[green]AGENTS.md reloaded. Project instructions refreshed.[/]"
+          : $"[yellow]No AGENTS.md found. Project instructions cleared.[/]");
+      continue;
+    }
+
     if (input.ToLower() is "/info")
     {
       DisplayInfoPanel(agent, skills, tools);
@@ -142,6 +155,11 @@ static void DisplayHelp()
       "[bold]/help[/]",
       "Show this help message",
       "/?, /commands, help, ?, commands");
+
+  helpTable.AddRow(
+      "[bold]/agents[/]",
+      "Reload AGENTS.md project instructions",
+      "—");
 
   helpTable.AddRow(
       "[bold]/info[/]",
